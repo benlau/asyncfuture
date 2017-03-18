@@ -26,20 +26,21 @@ void Example::example_Timer_timeout()
     QTimer *timer = new QTimer(this);
     timer->setInterval(50);
 
-    // Convert a signal from object into QFuture
+    // Convert a signal from QObject into QFuture
     QFuture<void> future = observe(timer,
                                    &QTimer::timeout).future();
 
     // Listen from the future without using QFutureWatcher<T>
     observe(future).subscribe([]() {
-        // onCompleted. The future finish and not canceled
+        // onCompleted. It is invoked when the observed future is finished successfully
         qDebug() << "onCompleted";
     },[]() {
         // onCanceled
         qDebug() << "onCancel";
     });
 
-    // It is chainable. Listen from a timeout event once only
+    // It is chainable. Listen from a timeout signal only once
+
     observe(timer, &QTimer::timeout).subscribe([=]() { /*…*/ });
 
     timer->start();
@@ -57,12 +58,13 @@ void Example::example_combine_multiple_future()
     QTimer *timer = new QTimer(this);
     timer->setInterval(80);
 
+    // Combine multiple futures with different type into a single future
     QFuture<QImage> f1 = QtConcurrent::run(readImage, QString("image.jpg"));
 
     QFuture<void> f2 = observe(timer, &QTimer::timeout).future();
 
     (combine() << f1 << f2).subscribe([](QVariantList result){
-        // result[0] = the QImage return
+        // result[0] = QImage
         qDebug() << result;
     });
 
@@ -89,13 +91,16 @@ void Example::example_worker_context()
 
     QObject* contextObject = new QObject(this);
 
-    // Read image by a thread, when it is ready, run the validator function
-    // in the thread of the contextObject(e.g main thread)
-    // And it return another QFuture to represent the final result.
+    // Start a thread and process its result in main thread
 
     QFuture<QImage> reading = QtConcurrent::run(readImage, QString("image.jpg"));
 
     QFuture<bool> validating = observe(reading).context(contextObject, validator).future();
+
+    // Read image by a thread, when it is ready, run the validator function
+    // in the thread of the contextObject(e.g main thread)
+    // And it return another QFuture to represent the final result.
+
 
     QVERIFY(waitUntil(validating, 1000));
 
