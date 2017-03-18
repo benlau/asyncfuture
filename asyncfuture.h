@@ -4,6 +4,7 @@
 #include <QPointer>
 #include <QThread>
 #include <QFutureWatcher>
+#include <functional>
 
 namespace AsyncFuture {
 
