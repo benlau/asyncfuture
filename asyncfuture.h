@@ -4,6 +4,7 @@
 #include <QPointer>
 #include <QThread>
 #include <QFutureWatcher>
+#include <QVariant>
 
 namespace AsyncFuture {
 
@@ -149,7 +150,7 @@ public:
     bool autoDelete;
     bool resolved;
 
-private:
+protected:
 
     void reportResult(Value<void> &value) {
         Q_UNUSED(value);
@@ -163,6 +164,95 @@ private:
     template <typename R>
     void reportResult(Value<R>& value) {
         QFutureInterface<T>::reportResult(value.value);
+    }
+
+};
+
+
+// Obtain the result of future in QVariant.
+// It is used within Combinator only as other component do
+// require to register QMetaType
+template <typename T>
+inline QVariant obtainFutureResult(QFuture<T> future) {
+    return future.result();
+}
+
+template <>
+inline QVariant obtainFutureResult<void>(QFuture<void> future) {
+    Q_UNUSED(future);
+    return QVariant();
+}
+
+class CombinedFuture: public DeferredFuture<QVariantList> {
+public:
+    CombinedFuture(bool settleAllMode = false) : DeferredFuture<QVariantList>(), settleAllMode(settleAllMode) {
+        settledCount = 0;
+        count = 0;
+        anyCanceled = false;
+    }
+
+    template <typename T>
+    void addFuture(const QFuture<T> future) {
+        int index = count++;
+        results << QVariant();
+
+        QFutureWatcher<T> *watcher = new QFutureWatcher<T>();
+        watcher->setFuture(future);
+
+        QObject::connect(watcher, &QFutureWatcher<T>::finished,
+                         this, [=](){
+            watcher->disconnect();
+            watcher->deleteLater();
+            completeFutureAt(index, future);
+        });
+
+        QObject::connect(watcher, &QFutureWatcher<T>::canceled,
+                         this, [=]() {
+            watcher->disconnect();
+            watcher->deleteLater();
+            cancelFutureAt(index);
+        });
+    }
+
+    int settledCount = 0;
+    int count = 0;
+    bool anyCanceled;
+    bool settleAllMode;
+    QVariantList results;
+
+private:
+
+    template <typename T>
+    void completeFutureAt(int index, QFuture<T> future) {
+        settledCount++;
+        results[index] = Private::obtainFutureResult(future);
+        checkFulfilled();
+    }
+
+    void cancelFutureAt(int index) {
+        Q_UNUSED(index);
+        settledCount++;
+        anyCanceled = true;
+        checkFulfilled();
+    }
+
+    void checkFulfilled() {
+        if (resolved) {
+            return;
+        }
+
+        if (anyCanceled && !settleAllMode) {
+            cancel();
+            return;
+        }
+
+        if (settledCount == count) {
+            if (anyCanceled) {
+                cancel();
+            } else {
+                complete(results);
+            }
+        }
     }
 
 };
@@ -345,6 +435,7 @@ void nextTick(F f) {
                      Qt::QueuedConnection);
 }
 
+
 } // End of Private Namespace
 
 template <typename T>
@@ -487,13 +578,45 @@ private:
     QSharedPointer<Private::DeferredFuture<void> > defer;
 };
 
+class Combinator : public Observable<QVariantList> {
+private:
+    QPointer<Private::CombinedFuture> combinedFuture;
+
+public:
+    inline Combinator(bool settleAllMode = false) : Observable<QVariantList>() {
+        combinedFuture = new Private::CombinedFuture(settleAllMode);
+        combinedFuture->autoDelete = true;
+        m_future = combinedFuture->future();
+    }
+
+    inline ~Combinator() {
+        if (!combinedFuture.isNull() && combinedFuture->count == 0) {
+            // No future added
+            combinedFuture->deleteLater();
+        }
+    }
+
+    template <typename T>
+    Combinator& combine(QFuture<T> future) {
+        combinedFuture->addFuture(future);
+        return *this;
+    }
+
+    template <typename T>
+    Combinator& operator<<(QFuture<T> future) {
+        combinedFuture->addFuture(future);
+        return *this;
+    }
+
+};
+
 template <typename T>
 static Observable<T> observe(QFuture<T> future) {
     return Observable<T>(future);
 }
 
 template <typename Member>
-static auto observe(QObject* object, Member pointToMemberFunction)
+auto observe(QObject* object, Member pointToMemberFunction)
 -> Observable< typename Private::signal_traits<Member>::result_type> {
 
     typedef typename Private::signal_traits<Member>::result_type RetType;
@@ -519,6 +642,10 @@ static auto observe(QObject* object, Member pointToMemberFunction)
 template <typename T>
 auto defer() -> Defer<T> {
     return Defer<T>();
+}
+
+inline Combinator combine(bool settleAllMode = false) {
+    return Combinator(settleAllMode);
 }
 
 }

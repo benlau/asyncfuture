@@ -44,4 +44,6 @@ private slots:
     void test_Observable_subscribe();
 
     void test_Defer();
+
+    void test_Combinator();
 };

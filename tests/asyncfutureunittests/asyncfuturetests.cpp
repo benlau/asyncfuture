@@ -497,3 +497,94 @@ void AsyncFutureTests::test_Defer()
     }
 
 }
+
+void AsyncFutureTests::test_Combinator()
+{
+    {
+        auto d1 = defer<int>();
+        auto d2 = defer<QString>();
+        auto d3 = defer<void>();
+
+        auto combinator = combine();
+        combinator << d1.future() << d2.future() << d3.future();
+
+        QFuture<QVariantList> future = combinator.future();
+        QVariantList results;
+
+        observe(future).subscribe([&](QVariantList value) {
+            results = value;
+        });
+
+        d1.complete(1);
+        d2.complete("second");
+        d3.complete();
+
+        QCOMPARE(results.isEmpty(), true);
+        QCOMPARE(future.isFinished(), false);
+
+        QVERIFY(waitUntil(future,1000));
+
+        QCOMPARE(future.isFinished(), true);
+
+        QCOMPARE(results.size(), 3);
+        QVERIFY(results[0] == 1);
+        QVERIFY(results[1] == "second");
+    }
+
+    {
+        auto d1 = defer<int>();
+        auto d2 = defer<QString>();
+        auto d3 = defer<void>();
+
+        auto combinator = combine();
+        combinator << d1.future() << d2.future() << d3.future();
+
+        QFuture<QVariantList> future = combinator.future();
+
+        Callable<void> canceled;
+
+        observe(future).subscribe([](){}, canceled.func);
+
+        d1.complete(2);
+        d2.cancel();
+
+        QVERIFY(waitUntil(future,1000));
+
+        QCOMPARE(future.isFinished(), true);
+        QCOMPARE(future.isCanceled(), true);
+        QCOMPARE(canceled.called, true);
+    }
+
+    {
+        auto d1 = defer<int>();
+        auto d2 = defer<QString>();
+        auto d3 = defer<void>();
+
+        auto combinator = combine(true);
+        combinator << d1.future() << d2.future() << d3.future();
+
+        QFuture<QVariantList> future = combinator.future();
+
+        Callable<QVariantList> completed;
+        Callable<void> canceled;
+
+        observe(future).subscribe(completed.func, canceled.func);
+
+        d1.complete(2);
+        d2.cancel();
+
+        QVERIFY(!waitUntil(future,1000));
+
+        QCOMPARE(future.isFinished(), false);
+        QCOMPARE(future.isCanceled(), false);
+
+        QCOMPARE(canceled.called, false);
+        d3.complete();
+
+        QVERIFY(waitUntil(future,1000));
+        QCOMPARE(future.isFinished(), true);
+        QCOMPARE(future.isCanceled(), true);
+        QCOMPARE(canceled.called, true);
+
+    }
+}
