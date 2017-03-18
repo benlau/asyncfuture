@@ -18,4 +18,5 @@ script:
     - mkdir build
     - cd build
     - run-unittests ../tests/asyncfutureunittests/asyncfutureunittests.pro
+    - valgrind --leak-check=full --track-origins=yes --error-exitcode=1 ./asyncfutureunittests
 
