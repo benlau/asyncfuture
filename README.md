@@ -7,13 +7,18 @@ AsyncFuture is designed to enhance the function to offer a better way to use it 
 
 Example usages:
 
-```
 
-// Convert a signal from QObject into QFuture
+```c++
+
+#include "asyncfuture.h"
+using namespace AsyncFuture;
+
+/* Convert a signal from QObject into QFuture */
+
 QFuture<void> future = observe(timer,
                                &QTimer::timeout).future();
 
-// Listen from the future without using QFutureWatcher<T>
+/* Listen from the future without using QFutureWatcher<T>*/
 observe(future).subscribe([]() {
     // onCompleted. It is invoked when the observed future is finished successfully
     qDebug() << "onCompleted";
@@ -22,10 +27,10 @@ observe(future).subscribe([]() {
     qDebug() << "onCancel";
 });
 
-// It is chainable. Listen from a timeout signal only once
+/* It is chainable. Listen from a timeout signal only once */
 observe(timer, &QTimer::timeout).subscribe([=]() { /*…*/ });
 
-// Combine multiple futures with different type into a single future
+/* Combine multiple futures with different type into a single future */
 
 QFuture<QImage> f1 = QtConcurrent::run(readImage, QString("image.jpg"));
 
@@ -37,7 +42,7 @@ QFuture<void> f2 = observe(timer, &QTimer::timeout).future();
     qDebug() << result;
 });
 
-// Start a thread and process its result in main thread
+/* Start a thread and process its result in main thread */
 
 QFuture<QImage> reading = QtConcurrent::run(readImage, QString("image.jpg"));
 
@@ -47,7 +52,7 @@ QFuture<bool> validating = observe(reading).context(contextObject, validator).fu
     // in the thread of the contextObject(e.g main thread)
     // And it return another QFuture to represent the final result.
 
-/* Advanced usages */
+/* Start a thread and process its result in main threadd, then start another thread. */
 
 // You may use QFuture as the input argument of your callback function
 // It will be set to the observed future object. So that you may obtain
