@@ -9,5 +9,11 @@ public:
 
 private slots:
     void example_Timer_timeout();
+
+    void example_combine_multiple_future();
+
+    void example_worker_context();
+
+    void example_context_return_future();
 };
 
