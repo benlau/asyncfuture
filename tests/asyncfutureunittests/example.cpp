@@ -22,14 +22,14 @@ Example::Example(QObject *parent) : QObject(parent)
 
 void Example::example_Timer_timeout()
 {
-    /*
-    QTimer timer;
-    timer.setInterval(50);
+    QTimer *timer = new QTimer(this);
+    timer->setInterval(50);
 
     // Convert a signal from object into QFuture
-    QFuture<void> future = observe(&timer,
+    QFuture<void> future = observe(timer,
                                    &QTimer::timeout).future();
 
+    // Listen from the future without using QFutureWatcher<T>
     observe(future).subscribe([]() {
         // onCompleted. The future finish and not canceled
         qDebug() << "onCompleted";
@@ -38,7 +38,10 @@ void Example::example_Timer_timeout()
         qDebug() << "onCancel";
     });
 
-    timer.start();
-    */
+    // It is chainable. Listen from a timeout event once only
+    observe(timer, &QTimer::timeout).subscribe([=]() { /*…*/ });
+
+    timer->start();
+    waitUntil(future);
 }
 

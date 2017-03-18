@@ -2,23 +2,25 @@
 #include <QFuture>
 #include <QMetaMethod>
 #include <QPointer>
-#include <QVariant>
 #include <QThread>
+#include <QFutureWatcher>
 
 namespace AsyncFuture {
 
 namespace Private {
 
-
-// Value is a data structure which could contain <void> type
+// Value is a wrapper of data structure which could contain <void> type.
+// AsyncFuture do not use QVariant because it need user to register before use.
 template <typename R>
 class Value {
 public:
+    Value() {
+    }
+
     Value(R&& v) : value(v){
     }
 
-    Value(QVariant& v) {
-        value = v.value<R>();
+    Value(R* v) : value(*v) {
     }
 
     Value(QFuture<R> future) {
@@ -34,8 +36,7 @@ public:
     Value() {
     }
 
-    Value(QVariant& v) {
-        Q_UNUSED(v);
+    Value(void*) {
     }
 
     Value(QFuture<void> future) {
@@ -160,13 +161,14 @@ private:
 
 };
 
+template <typename ARG>
 class Proxy : public QObject {
 public:
-    inline Proxy(QObject* parent) : QObject(parent) {
+    Proxy(QObject* parent) : QObject(parent) {
     }
 
     QVector<int> parameterTypes;
-    std::function<void(QVariant)> callback;
+    std::function<void(Value<ARG>)> callback;
     QMetaObject::Connection conn;
     QPointer<QObject> sender;
 
@@ -201,15 +203,11 @@ public:
         if (_c == QMetaObject::InvokeMetaMethod) {
             if (methodId == 0) {
                 sender->disconnect(conn);
-                QVariant v;
+                Value<ARG> v;
                 if (parameterTypes.count() > 0) {
-                    const QMetaType::Type type = static_cast<QMetaType::Type>(parameterTypes.at(0));
 
-                    if (type == QMetaType::QVariant) {
-                        v = *reinterpret_cast<QVariant *>(_a[1]);
-                    } else {
-                        v = QVariant(type, _a[1]);
-                    }
+                    Value<ARG> value(reinterpret_cast<ARG*>(_a[1]));
+                    v = value;
                 }
 
                 callback(v);
@@ -503,16 +501,18 @@ template <typename Member>
 static auto observe(QObject* object, Member pointToMemberFunction)
 -> Observable< typename Private::signal_traits<Member>::result_type> {
 
-    auto defer = new Private::DeferredFuture<typename Private::signal_traits<Member>::result_type>();
-    auto proxy = new Private::Proxy(defer);
+    typedef typename Private::signal_traits<Member>::result_type RetType;
+
+    auto defer = new Private::DeferredFuture<RetType>();
+
+    auto proxy = new Private::Proxy<RetType>(defer);
 
     defer->autoDelete = true;
 
     defer->cancel(object, &QObject::destroyed);
 
     proxy->bind(object, pointToMemberFunction);
-    proxy->callback = [=](QVariant v) {
-        Private::Value< typename Private::signal_traits<Member>::result_type> value(v);
+    proxy->callback = [=](Private::Value< RetType> value) {
         defer->complete(value);
         proxy->deleteLater();
     };

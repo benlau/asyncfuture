@@ -22,7 +22,8 @@ DEFINES += SRCDIR=\\\"$$PWD/\\\" QUICK_TEST_SOURCE_DIR=\\\"$$PWD/qmltests\\\"
 include(vendor/vendor.pri)
 include(../../asyncfuture.pri)
 
-DISTFILES +=     qpm.json     qmltests/tst_QmlTests.qml
+DISTFILES +=     qpm.json     qmltests/tst_QmlTests.qml \
+    ../../README.md
 
 HEADERS += \    
     example.h \
