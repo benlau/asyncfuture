@@ -2,6 +2,10 @@ language : cpp
 dist: trusty
 env:
   - DISPLAY=:99.0
+addons:
+  apt:
+    packages:
+    - valgrind
 compiler:
   - gcc
 before_install:

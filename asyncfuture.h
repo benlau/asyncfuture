@@ -209,14 +209,14 @@ public:
         if (_c == QMetaObject::InvokeMetaMethod) {
             if (methodId == 0) {
                 sender->disconnect(conn);
-                Value<ARG> v;
                 if (parameterTypes.count() > 0) {
 
                     Value<ARG> value(reinterpret_cast<ARG*>(_a[1]));
-                    v = value;
+                    callback(value);
+                } else {
+                    // It is triggered only if ARG==void.
+                    callback(Value<ARG>((ARG*) 0));
                 }
-
-                callback(v);
             }
         }
         return methodId;
@@ -507,7 +507,7 @@ static auto observe(QObject* object, Member pointToMemberFunction)
     defer->cancel(object, &QObject::destroyed);
 
     proxy->bind(object, pointToMemberFunction);
-    proxy->callback = [=](Private::Value< RetType> value) {
+    proxy->callback = [=](Private::Value<RetType> value) {
         defer->complete(value);
         proxy->deleteLater();
     };
