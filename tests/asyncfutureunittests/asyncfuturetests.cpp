@@ -427,6 +427,7 @@ void AsyncFutureTests::test_Defer()
         QCOMPARE(callable.called, true);
         QCOMPARE(future.isRunning(), false);
         QCOMPARE(future.isFinished(), true);
+	QCOMPARE(future.isResultReadyAt(0), true);
         QCOMPARE(future.result(), true);
 
         d2.complete(true);
@@ -465,8 +466,10 @@ void AsyncFutureTests::test_Defer()
         QCOMPARE(future.isRunning(), false);
         QCOMPARE(future.isFinished(), true);
         QCOMPARE(future.isCanceled(), true);
-        QCOMPARE(future.result(), false);
+
+	QCOMPARE(future.isResultReadyAt(0), false);
     }
+
 
     {
         auto d = AsyncFuture::defer<void>();

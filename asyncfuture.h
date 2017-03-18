@@ -5,6 +5,7 @@
 #include <QThread>
 #include <QFutureWatcher>
 #include <QVariant>
+#include <functional>
 
 namespace AsyncFuture {
 
