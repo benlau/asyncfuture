@@ -197,7 +197,7 @@ public:
         int index = count++;
         results << QVariant();
 
-        QFutureWatcher<T> *watcher = new QFutureWatcher<T>();
+        QFutureWatcher<T> *watcher = new QFutureWatcher<T>(this);
         watcher->setFuture(future);
 
         QObject::connect(watcher, &QFutureWatcher<T>::finished,

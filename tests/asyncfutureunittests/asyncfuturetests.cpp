@@ -10,6 +10,16 @@
 using namespace AsyncFuture;
 using namespace Test;
 
+template <typename T>
+QFuture<T> finishedFuture(T value) {
+
+    auto o = defer<T>();
+
+    o.complete(value);
+
+    return o.future();
+}
+
 AsyncFutureTests::AsyncFutureTests(QObject *parent) : QObject(parent)
 {
     auto ref = [=]() {
@@ -71,9 +81,9 @@ void AsyncFutureTests::test_private_DeferredFuture()
 
 void AsyncFutureTests::test_private_run()
 {
-    QFuture<bool> bFuture;
+    QFuture<bool> bFuture = finishedFuture<bool>(true);
     QFuture<void> vFuture;
-    QFuture<int> iFuture;
+    QFuture<int> iFuture = finishedFuture<int>(10);
 
     auto iCallbackBool = [](bool value) {
         Q_UNUSED(value);
