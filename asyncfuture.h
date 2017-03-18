@@ -7,6 +7,12 @@
 
 namespace AsyncFuture {
 
+/* Naming Convention
+ *
+ * typename T - The type of observable QFuture
+ * typename R - The return type of callback
+ */
+
 namespace Private {
 
 // Value is a wrapper of data structure which could contain <void> type.
@@ -260,7 +266,7 @@ struct signal_traits<R (C::*)(ARG1)> {
 template <typename T>
 struct future_traits {
     enum {
-        value = 0
+        is_future = 0
     };
 };
 
@@ -269,14 +275,14 @@ template <template <typename> class C, typename T>
 struct future_traits<C <T> >
 {
     enum {
-        value = 0
+        is_future = 0
     };
 };
 
 template <typename T>
 struct future_traits<QFuture<T> >{
     enum {
-        value = 1
+        is_future = 1
     };
     typedef T arg_type;
 };
@@ -361,60 +367,24 @@ public:
     }
 
     template <typename Functor>
-    typename std::enable_if< !Private::future_traits<typename Private::function_traits<Functor>::result_type>::value,
+    typename std::enable_if< !Private::future_traits<typename Private::function_traits<Functor>::result_type>::is_future,
     Observable<typename Private::function_traits<Functor>::result_type>
     >::type
     context(QObject* contextObject, Functor functor)  {
-
-        typedef typename Private::function_traits<Functor>::result_type Ret;
-
-        static_assert(Private::function_traits<Functor>::arity <= 1, "context(): Callback should take not more than one parameter");
-
-        auto defer = new Private::DeferredFuture<Ret> ();
-        defer->autoDelete = true;
-
-        auto watcher = new QFutureWatcher<T>(defer);
-        watcher->setFuture(m_future);
-
-        QObject::connect(watcher, &QFutureWatcher<T>::finished,
-                         watcher, [=](){
-            watcher->disconnect();
-            Private::Value<Ret> value = Private::run(functor, m_future);
-            defer->complete(value);
-        });
-
-        defer->cancel(contextObject, &QObject::destroyed);
-
-        return Observable<Ret>(defer->future());
+        return context<typename Private::function_traits<Functor>::result_type,
+                       typename Private::function_traits<Functor>::result_type
+                >(contextObject, functor);
     }
 
     template <typename Functor>
-    typename std::enable_if< Private::future_traits<typename Private::function_traits<Functor>::result_type>::value,
+    typename std::enable_if< Private::future_traits<typename Private::function_traits<Functor>::result_type>::is_future,
     Observable<typename Private::future_traits<typename Private::function_traits<Functor>::result_type>::arg_type>
     >::type
     context(QObject* contextObject, Functor functor)  {
         /* For functor return QFuture */
-        typedef typename Private::function_traits<Functor>::result_type ValueType;
-        typedef typename Private::future_traits<ValueType>::arg_type Ret;
-
-        static_assert(Private::function_traits<Functor>::arity <= 1, "context(): Callback should take not more than one parameter");
-
-        auto defer = new Private::DeferredFuture<Ret> ();
-        defer->autoDelete = true;
-
-        auto watcher = new QFutureWatcher<T>(defer);
-        watcher->setFuture(m_future);
-
-        QObject::connect(watcher, &QFutureWatcher<T>::finished,
-                         watcher, [=](){
-            watcher->disconnect();
-            Private::Value<ValueType> value = Private::run(functor, m_future);
-            defer->complete(value.value);
-        });
-
-        defer->cancel(contextObject, &QObject::destroyed);
-
-        return Observable<Ret>(defer->future());
+        return context<typename Private::future_traits<typename Private::function_traits<Functor>::result_type>::arg_type,
+                       typename Private::function_traits<Functor>::result_type
+                >(contextObject, functor);
     }
 
     template <typename Functor1, typename Functor2>
@@ -449,6 +419,31 @@ public:
     void subscribe(Functor1 onCompleted) {
         subscribe(onCompleted, [](){});
     }
+
+private:
+    template <typename ObservableType, typename RetType, typename Functor>
+    Observable<ObservableType> context(QObject* contextObject, Functor functor)  {
+
+        static_assert(Private::function_traits<Functor>::arity <= 1, "context(): Callback should take not more than one parameter");
+
+        auto defer = new Private::DeferredFuture<ObservableType> ();
+        defer->autoDelete = true;
+
+        auto watcher = new QFutureWatcher<T>(defer);
+        watcher->setFuture(m_future);
+
+        QObject::connect(watcher, &QFutureWatcher<T>::finished,
+                         watcher, [=](){
+            watcher->disconnect();
+            Private::Value<RetType> value = Private::run(functor, m_future);
+            defer->complete(value);
+        });
+
+        defer->cancel(contextObject, &QObject::destroyed);
+
+        return Observable<ObservableType>(defer->future());
+    }
+
 };
 
 template <typename T>

@@ -398,7 +398,6 @@ void AsyncFutureTests::test_Observable_subscribe()
         waitUntil(o.future());
         tick();
         QCOMPARE(c1.called, false);
-        QCOMPARE(c1.value, 0);
         QCOMPARE(c2.called, true);
     }
 }
