@@ -556,10 +556,10 @@ private:
 };
 
 template <typename T>
-class Defer : public Observable<T> {
+class Deferred : public Observable<T> {
 
 public:
-    Defer() : Observable<T>(),
+    Deferred() : Observable<T>(),
               defer(Private::DeferredFuture<T>::create())  {
         this->m_future = defer->future();
     }
@@ -582,10 +582,10 @@ private:
 };
 
 template<>
-class Defer<void> : public Observable<void> {
+class Deferred<void> : public Observable<void> {
 
 public:
-    Defer() : Observable<void>(),
+    Deferred() : Observable<void>(),
               defer(Private::DeferredFuture<void>::create())  {
         this->m_future = defer->future();
     }
@@ -668,8 +668,8 @@ auto observe(QObject* object, Member pointToMemberFunction)
 }
 
 template <typename T>
-auto defer() -> Defer<T> {
-    return Defer<T>();
+auto deferred() -> Deferred<T> {
+    return Deferred<T>();
 }
 
 inline Combinator combine(bool settleAllMode = false) {

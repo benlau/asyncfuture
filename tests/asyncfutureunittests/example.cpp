@@ -149,7 +149,7 @@ void Example::example_context_return_future()
 void Example::example_promise_like()
 {
     // Complete / cancel a future on your own choice
-    auto d = defer<bool>();
+    auto d = deferred<bool>();
 
     observe(d.future()).subscribe([]() {
         qDebug() << "onCompleted";
@@ -173,7 +173,7 @@ void Example::example_promise_like_complete_future()
         Automator::wait(50);
     };
 
-    auto d = defer<void>();
+    auto d = deferred<void>();
 
     d.complete(QtConcurrent::run(timeout));
 

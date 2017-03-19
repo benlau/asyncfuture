@@ -13,7 +13,7 @@ using namespace Test;
 template <typename T>
 QFuture<T> finishedFuture(T value) {
 
-    auto o = defer<T>();
+    auto o = deferred<T>();
 
     o.complete(value);
 
@@ -112,7 +112,7 @@ void AsyncFutureTests::test_private_run()
         return future.result();
     };
 
-    auto d = defer<int>();
+    auto d = deferred<int>();
     iFuture = d.future();
     d.complete(20);
     QVERIFY(waitUntil(iFuture,1000));
@@ -208,7 +208,7 @@ void AsyncFutureTests::test_Observable_context()
     /* Extra case. Depend on a finished future */
     {
         vCleanupVoidCalled = false;
-        auto d = defer<void>();
+        auto d = deferred<void>();
         d.complete();
         vFuture = d.future();
         QCOMPARE(vFuture.isFinished(), true);
@@ -391,7 +391,7 @@ void AsyncFutureTests::test_Observable_signal_destroyed()
 void AsyncFutureTests::test_Observable_subscribe()
 {
     {
-        auto o = defer<int>();
+        auto o = deferred<int>();
         auto c1 = Callable<int>();
         o.subscribe(c1.func);
         o.complete(10);
@@ -403,7 +403,7 @@ void AsyncFutureTests::test_Observable_subscribe()
     }
 
     {
-        auto o = defer<int>();
+        auto o = deferred<int>();
         auto c1 = Callable<int>();
         auto c2 = Callable<void>();
         o.subscribe(c1.func, c2.func);
@@ -424,7 +424,7 @@ void AsyncFutureTests::test_Defer()
 {
     {
         // defer<bool>::complete
-        auto d = AsyncFuture::defer<bool>();
+        auto d = AsyncFuture::deferred<bool>();
         auto d2 = d;
         auto future = d.future();
         Callable<bool> callable;
@@ -454,7 +454,7 @@ void AsyncFutureTests::test_Defer()
         // defer<void>::complete
         QFuture<void> future;
         {
-            auto d = AsyncFuture::defer<void>();
+            auto d = AsyncFuture::deferred<void>();
             future = d.future();
             QCOMPARE(future.isRunning(), true);
             QCOMPARE(future.isFinished(), false);
@@ -475,7 +475,7 @@ void AsyncFutureTests::test_Defer()
 
     {
         // defer<bool>::cancel
-        auto d = AsyncFuture::defer<bool>();
+        auto d = AsyncFuture::deferred<bool>();
         auto future = d.future();
         QCOMPARE(future.isRunning(), true);
         QCOMPARE(future.isFinished(), false);
@@ -492,7 +492,7 @@ void AsyncFutureTests::test_Defer()
 
     {
         // defer<void>::cancel
-        auto d = AsyncFuture::defer<void>();
+        auto d = AsyncFuture::deferred<void>();
         auto future = d.future();
         QCOMPARE(future.isRunning(), true);
         QCOMPARE(future.isFinished(), false);
@@ -508,7 +508,7 @@ void AsyncFutureTests::test_Defer()
         // destroy defer<void>
         QFuture<void> future;
         {
-            auto d = AsyncFuture::defer<void>();
+            auto d = AsyncFuture::deferred<void>();
             future = d.future();
             QCOMPARE(future.isRunning(), true);
             QCOMPARE(future.isFinished(), false);
@@ -532,7 +532,7 @@ void AsyncFutureTests::test_Defer_complete_future()
         QFuture<void> future;
 
         {
-            auto d = defer<void>();
+            auto d = deferred<void>();
             future = d.future();
 
             // d is destroyed but complete(QFuture) increased the ref count and therefore it won't be canceled
@@ -551,12 +551,12 @@ void AsyncFutureTests::test_Defer_complete_future()
     {
         // case: complete(future) which will be canceled.
 
-        auto source = defer<void>();
+        auto source = deferred<void>();
 
         // Case: complete(QFuture) which could be finished without error
         QFuture<void> future;
         {
-            auto d = defer<void>();
+            auto d = deferred<void>();
             future = d.future();
             d.complete(source.future());
         }
@@ -580,9 +580,9 @@ void AsyncFutureTests::test_Combinator()
 {
     {
         // case: all completed
-        auto d1 = defer<int>();
-        auto d2 = defer<QString>();
-        auto d3 = defer<void>();
+        auto d1 = deferred<int>();
+        auto d2 = deferred<QString>();
+        auto d3 = deferred<void>();
 
         auto combinator = combine();
         combinator << d1.future() << d2.future() << d3.future();
@@ -615,9 +615,9 @@ void AsyncFutureTests::test_Combinator()
         // case: all completed (but Combinator was destroyed )
         QFuture<QVariantList> future ;
 
-        auto d1 = defer<int>();
-        auto d2 = defer<QString>();
-        auto d3 = defer<void>();
+        auto d1 = deferred<int>();
+        auto d2 = deferred<QString>();
+        auto d3 = deferred<void>();
 
         {
             future = (combine() << d1.future() << d2.future() << d3.future()).future();
@@ -647,9 +647,9 @@ void AsyncFutureTests::test_Combinator()
 
     {
         // case: combine(false), cancel
-        auto d1 = defer<int>();
-        auto d2 = defer<QString>();
-        auto d3 = defer<void>();
+        auto d1 = deferred<int>();
+        auto d2 = deferred<QString>();
+        auto d3 = deferred<void>();
 
         auto combinator = combine();
         combinator << d1.future() << d2.future() << d3.future();
@@ -672,9 +672,9 @@ void AsyncFutureTests::test_Combinator()
 
     {
         // case: combine(true), cancel
-        auto d1 = defer<int>();
-        auto d2 = defer<QString>();
-        auto d3 = defer<void>();
+        auto d1 = deferred<int>();
+        auto d2 = deferred<QString>();
+        auto d3 = deferred<void>();
 
         auto combinator = combine(true);
         combinator << d1.future() << d2.future() << d3.future();
