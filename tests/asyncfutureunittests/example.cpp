@@ -183,3 +183,101 @@ void Example::example_promise_like_complete_future()
     QVERIFY(waitUntil(d.future(), 1000));
 }
 
+void Example::example_fileactor()
+{
+    /* FileActor- read data from a file.
+     - If the cache is available, return a QFuture with the content
+     - If cache is missed, check do it have any worker thread is ready, return the future of the threadd
+     - If no thread is found, start a new one
+     */
+
+    class FileActor : public QObject {
+    public:
+
+        QFuture<QString> read(QString fileName) {
+            QFuture<QString> future;
+
+            if (cache.contains(fileName)) {
+                // Cache hit. But it still return a QFuture [finished].
+
+                auto defer = deferred<QString>();
+                defer.complete(*cache.object(fileName));
+                future = defer.future();
+
+            } else if (workers.contains(fileName)) {
+
+                // If any worker are reading, just return the future
+                future = workers[fileName];
+
+            } else {
+
+                class Session {
+                public:
+                    QString fileName;
+                    QString content;
+                };
+
+                auto loader = [=](QString fileName){
+                    Automator::wait(50);
+
+                    Session session;
+                    session.content = fileName + "+data";
+                    session.fileName = fileName;
+
+                    return session;
+                };
+
+                QFuture<Session> worker = QtConcurrent::run(loader, fileName);
+                auto observer = observe(worker).context(this, [=](Session session) {
+
+                    workers.remove(session.fileName);
+                    cache.insert(fileName, new QString(session.content));
+                    return session.content;
+                });
+
+                future = observer.future();
+                workers[fileName] = future;
+            }
+
+            return future;
+        }
+
+        QCache<QString, QString> cache;
+        QMap<QString, QFuture<QString> > workers;
+    };
+
+
+    FileActor actor;
+    QString fileName = "input.txt";
+
+    QFuture<QString> future = actor.read(fileName);
+
+    QCOMPARE(future.isFinished(), false);
+    QVERIFY(actor.workers.contains(fileName));
+
+    QVERIFY(waitUntil(future, 1000));
+
+    QCOMPARE(future.isFinished(), true);
+
+    QVERIFY(future.result() == "input.txt+data");
+
+    QVERIFY(!actor.workers.contains(fileName));
+
+    // Read the content again
+    future = actor.read(fileName);
+
+    QVERIFY(future.isFinished());
+    QVERIFY(future.result() == "input.txt+data");
+
+    QString content;
+
+    observe(future).subscribe([&](QString result) {
+        content = result;
+    });
+
+    tick();
+
+    QVERIFY(future.result() == content);
+
+}
+
