@@ -106,9 +106,6 @@ QCOMPARE(d.future().isCanceled(), false);
 
 ```c++
 // Complete / cancel a future according to another future object.
-auto timeout = []() -> void {
-    Automator::wait(50);
-};
 
 auto d = defer<void>();
 

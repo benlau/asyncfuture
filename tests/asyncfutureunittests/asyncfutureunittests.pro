@@ -12,7 +12,7 @@ CONFIG   -= app_bundle
 
 TEMPLATE = app
 
-SOURCES +=     main.cpp \    
+SOURCES +=     main.cpp \
     example.cpp \
     asyncfuturetests.cpp \
     testfunctions.cpp
@@ -22,10 +22,10 @@ DEFINES += SRCDIR=\\\"$$PWD/\\\" QUICK_TEST_SOURCE_DIR=\\\"$$PWD/qmltests\\\"
 include(vendor/vendor.pri)
 include(../../asyncfuture.pri)
 
-DISTFILES +=     qpm.json     qmltests/tst_QmlTests.qml \
+DISTFILES +=     qpm.json  \
     ../../README.md
 
-HEADERS += \    
+HEADERS += \
     example.h \
     asyncfuturetests.h \
     testfunctions.h
