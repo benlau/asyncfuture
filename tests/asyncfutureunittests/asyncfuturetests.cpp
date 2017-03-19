@@ -206,18 +206,24 @@ void AsyncFutureTests::test_Observable_context()
     /* It is not a valid situation */
 
     /* Extra case. Depend on a finished future */
-    vCleanupVoidCalled = false;
-    vFuture = QFuture<void>();
-    QCOMPARE(vFuture.isFinished(), true);
-    vFuture2 = observe(vFuture).context(this, vCleanupVoid).future();
-    QCOMPARE(vFuture2.isFinished(), false);
+    {
+        vCleanupVoidCalled = false;
+        auto d = defer<void>();
+        d.complete();
+        vFuture = d.future();
+        QCOMPARE(vFuture.isFinished(), true);
+        QCOMPARE(vFuture.isCanceled(), false);
 
-    QVERIFY(waitUntil([&](){
-        return vFuture2.isFinished();
-    }, 1000));
+        vFuture2 = observe(vFuture).context(this, vCleanupVoid).future();
+        QCOMPARE(vFuture2.isFinished(), false);
 
-    QCOMPARE(vFuture2.isFinished(), true);
-    QCOMPARE(vCleanupVoidCalled, true);
+        QVERIFY(waitUntil([&](){
+            return vFuture2.isFinished();
+        }, 1000));
+
+        QCOMPARE(vFuture2.isFinished(), true);
+        QCOMPARE(vCleanupVoidCalled, true);
+    }
 }
 
 void AsyncFutureTests::test_Observable_context_destroyed()
@@ -406,7 +412,7 @@ void AsyncFutureTests::test_Observable_subscribe()
         QCOMPARE(c1.called, false);
 
         waitUntil(o.future());
-        tick();
+
         QCOMPARE(c1.called, false);
         QCOMPARE(c2.called, true);
     }

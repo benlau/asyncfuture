@@ -52,6 +52,27 @@ public:
     }
 };
 
+template <typename T, typename Finished, typename Canceled>
+void watch(QFuture<T> future, QObject* contextObject, Finished finished, Canceled canceled) {
+    QFutureWatcher<T> *watcher = new QFutureWatcher<T>(contextObject);
+
+    QObject::connect(watcher, &QFutureWatcher<T>::finished,
+                     contextObject, [=]() {
+        watcher->disconnect();
+        watcher->deleteLater();
+        finished();
+    });
+
+    QObject::connect(watcher, &QFutureWatcher<T>::canceled,
+                     contextObject, [=]() {
+        watcher->disconnect();
+        watcher->deleteLater();
+        canceled();
+    });
+
+    watcher->setFuture(future);
+}
+
 template <typename T>
 class DeferredFuture : public QObject, public QFutureInterface<T>{
 public:
@@ -103,26 +124,14 @@ public:
     }
 
     void complete(QFuture<T> future) {
-
-        QFutureWatcher<T> *watcher = new QFutureWatcher<T>(this);
-        watcher->setFuture(future);
-        connect(watcher, &QFutureWatcher<T>::finished,
-                watcher, [=]() {
-            watcher->disconnect();
-            watcher->deleteLater();
-
-            if (resolved) {
-                return;
-            }
-            resolved = true;
+        auto onFinished = [=]() {
             Value<T> value(future);
-            this->reportResult(value);
-            this->reportFinished();
+            complete(value);
+        };
 
-            if (autoDelete) {
-                this->deleteLater();
-            }
-        });
+        watch(future,
+              this,
+              onFinished, [](){});
     }
 
 
@@ -197,20 +206,10 @@ public:
         int index = count++;
         results << QVariant();
 
-        QFutureWatcher<T> *watcher = new QFutureWatcher<T>(this);
-        watcher->setFuture(future);
-
-        QObject::connect(watcher, &QFutureWatcher<T>::finished,
-                         this, [=](){
-            watcher->disconnect();
-            watcher->deleteLater();
+        Private::watch(future, this,
+                       [=]() {
             completeFutureAt(index, future);
-        });
-
-        QObject::connect(watcher, &QFutureWatcher<T>::canceled,
-                         this, [=]() {
-            watcher->disconnect();
-            watcher->deleteLater();
+        },[=]() {
             cancelFutureAt(index);
         });
     }
@@ -436,7 +435,6 @@ void nextTick(F f) {
                      Qt::QueuedConnection);
 }
 
-
 } // End of Private Namespace
 
 template <typename T>
@@ -482,27 +480,12 @@ public:
     template <typename Functor1, typename Functor2>
     void subscribe(Functor1 onCompleted,
                    Functor2 onCancelled) {
-        QFutureWatcher<T> *watcher = new QFutureWatcher<T>();
 
-        watcher->setFuture(m_future);
-
-        QObject::connect(watcher,
-                         &QFutureWatcher<T>::finished,
-                         QThread::currentThread(),
-                         [=](){
-            watcher->disconnect();
-            watcher->deleteLater();
-
+        Private::watch(m_future,
+                       QThread::currentThread(),
+                      [=](){
             Private::run(onCompleted, m_future);
-        });
-
-        QObject::connect(watcher,
-                         &QFutureWatcher<T>::canceled,
-                         QThread::currentThread(),
-                         [=](){
-            watcher->disconnect();
-            watcher->deleteLater();
-
+        },[=]() {
             Private::run(onCancelled, m_future);
         });
     }
@@ -521,17 +504,16 @@ private:
         auto defer = new Private::DeferredFuture<ObservableType> ();
         defer->autoDelete = true;
 
-        auto watcher = new QFutureWatcher<T>(defer);
-        watcher->setFuture(m_future);
+        defer->cancel(contextObject, &QObject::destroyed);
 
-        QObject::connect(watcher, &QFutureWatcher<T>::finished,
-                         watcher, [=](){
-            watcher->disconnect();
+        Private::watch(m_future,
+                       defer,
+                       [=]() {
             Private::Value<RetType> value = Private::run(functor, m_future);
             defer->complete(value);
+        },[=](){
+            defer->cancel();
         });
-
-        defer->cancel(contextObject, &QObject::destroyed);
 
         return Observable<ObservableType>(defer->future());
     }

@@ -50,6 +50,7 @@ namespace Test {
         while (!f()) {
             Automator::wait(10);
             if (timeout > 0 && time.elapsed() > timeout) {
+                tick();
                 return false;
             }
         }
@@ -62,6 +63,7 @@ namespace Test {
         return waitUntil([=]() {
            return future.isFinished();
         }, timeout);
+        tick();
     }
 
 }

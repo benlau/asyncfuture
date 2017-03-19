@@ -54,10 +54,11 @@ QFuture<bool> validating = observe(reading).context(contextObject, validator).fu
 
 /* Start a thread and process its result in main threadd, then start another thread. */
 
-// You may use QFuture as the input argument of your callback function
-// It will be set to the observed future object. So that you may obtain
-// the value of results()
 QFuture<int> f2 = observe(f1).context(contextObject, [=](QFuture<int> future) {
+    // You may use QFuture as the input argument of your callback function
+    // It will be set to the observed future object. So that you may obtain
+    // the value of results()
+
     qDebug() << future.results();
 
     // Return another QFuture is possible.
