@@ -541,12 +541,14 @@ private:
 
         defer->cancel(contextObject, &QObject::destroyed);
 
-        Private::watch(m_future,
+        auto future = m_future; // Observable could be destroyed. So it should keep the future by itself.
+
+        Private::watch(future,
                        defer,
-                       [=]() {
-            Private::Value<RetType> value = Private::run(functor, m_future);
+                       [future, defer, functor]() {
+            Private::Value<RetType> value = Private::run(functor, future);
             defer->complete(value);
-        },[=](){
+        },[defer](){
             defer->cancel();
         });
 
