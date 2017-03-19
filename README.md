@@ -145,7 +145,7 @@ Installation
 
 AsyncFuture is a single header library. You could just download the `asyncfuture.h` in your source tree or install it via qpm
 
-    qpm install async.future.pri (coming soon)
+    qpm install async.future.pri
 
 or
 
