@@ -128,10 +128,12 @@ public:
         auto onFinished = [=]() {
             Value<T> value(future);
             complete(value);
+            decRefCount();
         };
 
         auto onCanceled = [=]() {
             cancel();
+            decRefCount();
         };
 
         watch(future,
@@ -175,12 +177,30 @@ public:
             if (autoDelete) {
                 deleteLater();
             }
-
         }
     }
 
+    static QSharedPointer<DeferredFuture<T> > create() {
+
+        auto deleter = [](DeferredFuture<T> *object) {
+            if (object->resolved) {
+                // If that is already resolved, it is not necessary to keep it in memory
+                object->deleteLater();
+            } else {
+                object->autoDelete = true;
+                object->decRefCount();
+            }
+        };
+
+        QSharedPointer<DeferredFuture<T> > ptr(new DeferredFuture<T>(), deleter);
+        return ptr;
+    }
+
+    // Enable auto delete if the refCount is dropped to zero or it is completed/canceled
     bool autoDelete;
     bool resolved;
+
+    // A virtual reference count system. If autoDelete is not true, it won't delete the object even the count is zero
     int refCount;
 
 protected:
@@ -201,11 +221,6 @@ protected:
 
 };
 
-template <typename T>
-void unref(DeferredFuture<T> *object) {
-    object->autoDelete = true;
-    object->decRefCount();
-}
 
 
 // Obtain the result of future in QVariant.
@@ -545,7 +560,7 @@ class Defer : public Observable<T> {
 
 public:
     Defer() : Observable<T>(),
-              defer(new Private::DeferredFuture<T>(), Private::unref<T>)  {
+              defer(Private::DeferredFuture<T>::create())  {
         this->m_future = defer->future();
     }
 
@@ -571,7 +586,7 @@ class Defer<void> : public Observable<void> {
 
 public:
     Defer() : Observable<void>(),
-              defer(new Private::DeferredFuture<void>(), Private::unref<void>)  {
+              defer(Private::DeferredFuture<void>::create())  {
         this->m_future = defer->future();
     }
 

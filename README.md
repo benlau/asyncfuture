@@ -5,6 +5,8 @@ QFuture represents the result of an asynchronous computation. It is a powerful c
 
 AsyncFuture is designed to enhance the function to offer a better way to use it for asynchronous programming. This project is inspired by AsynQt and RxCpp.
 
+Remarks: You may use this project together with [benlau/quickfuture: Using QFuture in QML](https://github.com/benlau/quickfuture) for QML programming.
+
 Features
 ========
 
@@ -122,7 +124,7 @@ More examples are available : [asyncfuture/example.cpp at master · benlau/async
 Installation
 =============
 
-AsyncFuture is a single header library. You could just download the asyncfuture.h in your source tree or install it via qpm
+AsyncFuture is a single header library. You could just download the `asyncfuture.h` in your source tree or install it via qpm
 
     qpm install xxxx (coming soon)
 
