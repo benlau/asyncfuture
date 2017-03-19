@@ -183,6 +183,49 @@ void Example::example_promise_like_complete_future()
     QVERIFY(waitUntil(d.future(), 1000));
 }
 
+
+void Example::example_promise_like_timeout()
+{
+    QTimer* timer = new QTimer(this);
+    timer->setInterval(50);
+
+    auto readFileworker = [](QString fileName) -> QString {
+        Q_UNUSED(fileName);
+        Automator::wait(100);
+        return "";
+    };
+
+    auto read = [=](const QString &fileName) {
+        timer->start();
+
+        auto timeout = observe(timer, &QTimer::timeout).future();
+
+        auto defer = deferred<QString>();
+
+        defer.complete(QtConcurrent::run(readFileworker, fileName));
+        defer.cancel(timeout);
+
+        return defer.future();
+    };
+
+    auto future = read("input.txt");
+
+    bool canceldCalled = false;
+
+    observe(future).subscribe([](QString content) {
+        Q_UNUSED(content);
+        // onCompleted
+    },[&]() {
+        // onCanceled due to timeout
+        canceldCalled = true;
+    });
+
+    waitUntil(future);
+    QCOMPARE(canceldCalled, true);
+    timer->deleteLater();
+    Automator::wait(500); // wait until the read is finished
+}
+
 void Example::example_fileactor()
 {
     /* FileActor- read data from a file.

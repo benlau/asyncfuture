@@ -20,6 +20,8 @@ private slots:
 
     void example_promise_like_complete_future();
 
+    void example_promise_like_timeout();
+
     void example_fileactor();
 };
 
