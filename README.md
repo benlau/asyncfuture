@@ -14,6 +14,8 @@ Features
 #include "asyncfuture.h"
 using namespace AsyncFuture;
 
+// Convert a signal from QObject into a QFuture object
+
 QFuture<void> future = observe(timer,
                                &QTimer::timeout).future();
 

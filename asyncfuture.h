@@ -426,15 +426,6 @@ run(Functor functor, QFuture<T> future) {
     return Value<void>();
 }
 
-template <typename F>
-void nextTick(F f) {
-    QObject tmp;
-    QObject::connect(&tmp, &QObject::destroyed,
-                     QThread::currentThread(),
-                     f,
-                     Qt::QueuedConnection);
-}
-
 } // End of Private Namespace
 
 template <typename T>
@@ -528,9 +519,13 @@ public:
         this->m_future = defer->future();
     }
 
+    void complete(QFuture<T> future) {
+        defer->complete(future);
+    }
+
     void complete(T value)
     {
-        this->defer->complete(value);
+        defer->complete(value);
     }
 
     void cancel() {
@@ -547,6 +542,10 @@ class Defer<void> : public Observable<void> {
 public:
     Defer() : Observable<void>(), defer(new Private::DeferredFuture<void>())  {
         this->m_future = defer->future();
+    }
+
+    void complete(QFuture<void> future) {
+        defer->complete(future);
     }
 
     void complete() {

@@ -423,6 +423,7 @@ void AsyncFutureTests::test_Observable_subscribe()
 void AsyncFutureTests::test_Defer()
 {
     {
+        // defer<bool>::complete
         auto d = AsyncFuture::defer<bool>();
         auto d2 = d;
         auto future = d.future();
@@ -450,6 +451,7 @@ void AsyncFutureTests::test_Defer()
     }
 
     {
+        // defer<void>::complete
         QFuture<void> future;
         {
             auto d = AsyncFuture::defer<void>();
@@ -472,6 +474,7 @@ void AsyncFutureTests::test_Defer()
     }
 
     {
+        // defer<bool>::cancel
         auto d = AsyncFuture::defer<bool>();
         auto future = d.future();
         QCOMPARE(future.isRunning(), true);
@@ -483,11 +486,12 @@ void AsyncFutureTests::test_Defer()
         QCOMPARE(future.isFinished(), true);
         QCOMPARE(future.isCanceled(), true);
 
-	QCOMPARE(future.isResultReadyAt(0), false);
+        QCOMPARE(future.isResultReadyAt(0), false);
     }
 
 
     {
+        // defer<void>::cancel
         auto d = AsyncFuture::defer<void>();
         auto future = d.future();
         QCOMPARE(future.isRunning(), true);
@@ -500,8 +504,8 @@ void AsyncFutureTests::test_Defer()
         QCOMPARE(future.isCanceled(), true);
     }
 
-    // Auto cancel on destroy
     {
+        // destroy defer<void>
         QFuture<void> future;
         {
             auto d = AsyncFuture::defer<void>();
@@ -520,6 +524,7 @@ void AsyncFutureTests::test_Defer()
 void AsyncFutureTests::test_Combinator()
 {
     {
+        // case: all completed
         auto d1 = defer<int>();
         auto d2 = defer<QString>();
         auto d3 = defer<void>();
@@ -550,7 +555,43 @@ void AsyncFutureTests::test_Combinator()
         QVERIFY(results[1] == "second");
     }
 
+
     {
+        // case: all completed (but Combinator was destroyed )
+        QFuture<QVariantList> future ;
+
+        auto d1 = defer<int>();
+        auto d2 = defer<QString>();
+        auto d3 = defer<void>();
+
+        {
+            future = (combine() << d1.future() << d2.future() << d3.future()).future();
+        }
+
+        QVariantList results;
+
+        observe(future).subscribe([&](QVariantList value) {
+            results = value;
+        });
+
+        d1.complete(1);
+        d2.complete("second");
+        d3.complete();
+
+        QCOMPARE(results.isEmpty(), true);
+        QCOMPARE(future.isFinished(), false);
+
+        QVERIFY(waitUntil(future,1000));
+
+        QCOMPARE(future.isFinished(), true);
+
+        QCOMPARE(results.size(), 3);
+        QVERIFY(results[0] == 1);
+        QVERIFY(results[1] == "second");
+    }
+
+    {
+        // case: combine(false), cancel
         auto d1 = defer<int>();
         auto d2 = defer<QString>();
         auto d3 = defer<void>();
@@ -575,6 +616,7 @@ void AsyncFutureTests::test_Combinator()
     }
 
     {
+        // case: combine(true), cancel
         auto d1 = defer<int>();
         auto d2 = defer<QString>();
         auto d3 = defer<void>();
@@ -604,6 +646,6 @@ void AsyncFutureTests::test_Combinator()
         QCOMPARE(future.isFinished(), true);
         QCOMPARE(future.isCanceled(), true);
         QCOMPARE(canceled.called, true);
-
     }
+
 }
