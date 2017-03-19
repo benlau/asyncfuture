@@ -1,0 +1,22 @@
+{
+  "name": "async.future.pri",
+  "description": "",
+  "author": {
+    "name": "Ben Lau",
+    "email": "xbenlau@gmail.com"
+  },
+  "repository": {
+    "type": "GITHUB",
+    "url": "git@github.com:benlau/asyncfuture.git"
+  },
+  "version": {
+    "label": "0.0.1",
+    "revision": "",
+    "fingerprint": ""
+  },
+  "dependencies": [
+  ],
+  "license": "APACHE_2_0",
+  "pri_filename": "asyncfuture.pri",
+  "webpage": ""
+}

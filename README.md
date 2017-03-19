@@ -124,6 +124,20 @@ QCOMPARE(d.future().isCanceled(), false);
 
 ```
 
+Read a file. If timeout, cancel it.
+
+```c++
+
+auto timeout = observe(timer, &QTimer::timeout).future();
+
+auto defer = deferred<QString>();
+
+defer.complete(QtConcurrent::run(readFileworker, fileName));
+defer.cancel(timeout);
+
+return defer.future();
+```
+
 More examples are available at : [asyncfuture/example.cpp at master · benlau/asyncfuture](https://github.com/benlau/asyncfuture/blob/master/tests/asyncfutureunittests/example.cpp)
 
 Installation
@@ -131,7 +145,7 @@ Installation
 
 AsyncFuture is a single header library. You could just download the `asyncfuture.h` in your source tree or install it via qpm
 
-    qpm install xxxx (coming soon)
+    qpm install async.future.pri (coming soon)
 
 or
 
