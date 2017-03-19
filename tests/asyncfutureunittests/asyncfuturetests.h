@@ -45,5 +45,7 @@ private slots:
 
     void test_Defer();
 
+    void test_Defer_complete_future();
+
     void test_Combinator();
 };

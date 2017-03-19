@@ -79,8 +79,8 @@ public:
     DeferredFuture(QObject* parent = 0): QObject(parent),
                                          QFutureInterface<T>(QFutureInterface<T>::Running),
                                          autoDelete(false),
-                                         resolved(false) {
-
+                                         resolved(false),
+                                         refCount(1) {
     }
 
     ~DeferredFuture() {
@@ -124,6 +124,7 @@ public:
     }
 
     void complete(QFuture<T> future) {
+        addRefCount();
         auto onFinished = [=]() {
             Value<T> value(future);
             complete(value);
@@ -157,8 +158,20 @@ public:
         });
     }
 
+    void addRefCount() {
+        refCount++;
+    }
+
+    void decRefCount() {
+        refCount--;
+        if (refCount <= 0) {
+            cancel();
+        }
+    }
+
     bool autoDelete;
     bool resolved;
+    int refCount;
 
 protected:
 
@@ -177,6 +190,12 @@ protected:
     }
 
 };
+
+template <typename T>
+void unref(DeferredFuture<T> *object) {
+    object->autoDelete = true;
+    object->decRefCount();
+}
 
 
 // Obtain the result of future in QVariant.
@@ -515,7 +534,8 @@ template <typename T>
 class Defer : public Observable<T> {
 
 public:
-    Defer() : Observable<T>(), defer(new Private::DeferredFuture<T>())  {
+    Defer() : Observable<T>(),
+              defer(new Private::DeferredFuture<T>(), Private::unref<T>)  {
         this->m_future = defer->future();
     }
 
@@ -540,7 +560,8 @@ template<>
 class Defer<void> : public Observable<void> {
 
 public:
-    Defer() : Observable<void>(), defer(new Private::DeferredFuture<void>())  {
+    Defer() : Observable<void>(),
+              defer(new Private::DeferredFuture<void>(), Private::unref<void>)  {
         this->m_future = defer->future();
     }
 

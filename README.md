@@ -80,3 +80,35 @@ QFuture<int> f2 = observe(f1).context(contextObject, [=](QFuture<int> future) {
 // But its value is equal to the result of reducerFunc
 
 ```
+
+**4. Promise like interface **
+
+```c++
+
+auto d = defer<bool>();
+
+observe(d.future()).subscribe([]() {
+    qDebug() << "onCompleted";
+}, []() {
+    qDebug() << "onCancel";
+});
+
+d.complete(true);
+d.cancel();
+
+QCOMPARE(d.future().isFinished(), true);
+QCOMPARE(d.future().isCanceled(), false);
+
+```
+
+Installation
+=============
+
+AsyncFuture is a single header library. You could just download the asyncfuture.h in your source tree or install it via qpm
+
+    qpm install xxxx (coming soon)
+
+or
+
+    wget https://raw.githubusercontent.com/benlau/asyncfuture/master/asyncfuture.h
+

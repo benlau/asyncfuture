@@ -146,3 +146,22 @@ void Example::example_context_return_future()
     QCOMPARE(f2.result(), 10);
 }
 
+void Example::example_promise_like()
+{
+    auto d = defer<bool>();
+
+    observe(d.future()).subscribe([]() {
+        qDebug() << "onCompleted";
+    }, []() {
+        qDebug() << "onCancel";
+    });
+
+    d.complete(true);
+    d.cancel();
+
+    QCOMPARE(d.future().isFinished(), true);
+    QCOMPARE(d.future().isCanceled(), false);
+
+    waitUntil(d.future());
+}
+

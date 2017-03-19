@@ -521,6 +521,31 @@ void AsyncFutureTests::test_Defer()
 
 }
 
+void AsyncFutureTests::test_Defer_complete_future()
+{
+    auto timeout = []() {
+        Automator::wait(50);
+    };
+
+    QFuture<void> future;
+
+    {
+        auto d = defer<void>();
+        future = d.future();
+
+        // d is destroyed but complete(QFuture) increased the ref count and therefore it won't be canceled
+        d.complete(QtConcurrent::run(timeout));
+    }
+
+    QCOMPARE(future.isFinished(), false);
+    QCOMPARE(future.isCanceled(), false);
+
+    waitUntil(future);
+
+    QCOMPARE(future.isFinished(), true);
+    QCOMPARE(future.isCanceled(), false);
+}
+
 void AsyncFutureTests::test_Combinator()
 {
     {
