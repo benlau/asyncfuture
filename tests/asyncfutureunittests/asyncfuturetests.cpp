@@ -527,23 +527,53 @@ void AsyncFutureTests::test_Defer_complete_future()
         Automator::wait(50);
     };
 
-    QFuture<void> future;
-
     {
-        auto d = defer<void>();
-        future = d.future();
+        // Case: complete(QFuture) which could be finished without error
+        QFuture<void> future;
 
-        // d is destroyed but complete(QFuture) increased the ref count and therefore it won't be canceled
-        d.complete(QtConcurrent::run(timeout));
+        {
+            auto d = defer<void>();
+            future = d.future();
+
+            // d is destroyed but complete(QFuture) increased the ref count and therefore it won't be canceled
+            d.complete(QtConcurrent::run(timeout));
+        }
+
+        QCOMPARE(future.isFinished(), false);
+        QCOMPARE(future.isCanceled(), false);
+
+        waitUntil(future);
+
+        QCOMPARE(future.isFinished(), true);
+        QCOMPARE(future.isCanceled(), false);
     }
 
-    QCOMPARE(future.isFinished(), false);
-    QCOMPARE(future.isCanceled(), false);
+    {
+        // case: complete(future) which will be canceled.
 
-    waitUntil(future);
+        auto source = defer<void>();
 
-    QCOMPARE(future.isFinished(), true);
-    QCOMPARE(future.isCanceled(), false);
+        // Case: complete(QFuture) which could be finished without error
+        QFuture<void> future;
+        {
+            auto d = defer<void>();
+            future = d.future();
+            d.complete(source.future());
+        }
+
+        QCOMPARE(future.isFinished(), false);
+        QCOMPARE(future.isCanceled(), false);
+
+        source.cancel();
+
+        QCOMPARE(future.isFinished(), false);
+        QCOMPARE(future.isCanceled(), false);
+
+        QVERIFY(waitUntil(future, 1000));
+
+        QCOMPARE(future.isFinished(), true);
+        QCOMPARE(future.isCanceled(), true);
+    }
 }
 
 void AsyncFutureTests::test_Combinator()

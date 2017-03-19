@@ -148,6 +148,7 @@ void Example::example_context_return_future()
 
 void Example::example_promise_like()
 {
+    // Complete / cancel a future on your own choice
     auto d = defer<bool>();
 
     observe(d.future()).subscribe([]() {
@@ -162,6 +163,23 @@ void Example::example_promise_like()
     QCOMPARE(d.future().isFinished(), true);
     QCOMPARE(d.future().isCanceled(), false);
 
-    waitUntil(d.future());
+    QVERIFY(waitUntil(d.future(), 1000));
+}
+
+void Example::example_promise_like_complete_future()
+{
+    // Complete / cancel a future according to another future object.
+    auto timeout = []() -> void {
+        Automator::wait(50);
+    };
+
+    auto d = defer<void>();
+
+    d.complete(QtConcurrent::run(timeout));
+
+    QCOMPARE(d.future().isFinished(), false);
+    QCOMPARE(d.future().isCanceled(), false);
+
+    QVERIFY(waitUntil(d.future(), 1000));
 }
 

@@ -130,11 +130,15 @@ public:
             complete(value);
         };
 
+        auto onCanceled = [=]() {
+            cancel();
+        };
+
         watch(future,
               this,
-              onFinished, [](){});
+              onFinished,
+              onCanceled);
     }
-
 
     void cancel() {
         if (resolved) {
@@ -166,6 +170,12 @@ public:
         refCount--;
         if (refCount <= 0) {
             cancel();
+
+            // In case it is already resolved
+            if (autoDelete) {
+                deleteLater();
+            }
+
         }
     }
 

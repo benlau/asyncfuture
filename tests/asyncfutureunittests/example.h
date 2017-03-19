@@ -17,5 +17,7 @@ private slots:
     void example_context_return_future();
 
     void example_promise_like();
+
+    void example_promise_like_complete_future();
 };
 

@@ -1,4 +1,5 @@
 ## AsyncFuture - Enhance QFuture for asynchronous programming
+[![Build Status](https://travis-ci.org/benlau/asyncfuture.svg?branch=master)](https://travis-ci.org/benlau/asyncfuture)
 
 QFuture represents the result of an asynchronous computation. It is a powerful component for multi-thread programming. But its usage is limited to the result of threads. And QtConcurrent only provides a MapReduce usage model that may not fit your usage. Morever, it doesn't work with the asynchronous signal emitted by QObject. And it is a bit trouble to setup the listener function via QFutureWatcher.
 
@@ -81,10 +82,11 @@ QFuture<int> f2 = observe(f1).context(contextObject, [=](QFuture<int> future) {
 
 ```
 
-**4. Promise like interface **
+**4. Promise like interface**
+
 
 ```c++
-
+// Complete / cancel a future on your own choice
 auto d = defer<bool>();
 
 observe(d.future()).subscribe([]() {
@@ -93,13 +95,29 @@ observe(d.future()).subscribe([]() {
     qDebug() << "onCancel";
 });
 
-d.complete(true);
-d.cancel();
+d.complete(true); // or d.cancel();
 
 QCOMPARE(d.future().isFinished(), true);
 QCOMPARE(d.future().isCanceled(), false);
 
 ```
+
+```c++
+// Complete / cancel a future according to another future object.
+auto timeout = []() -> void {
+    Automator::wait(50);
+};
+
+auto d = defer<void>();
+
+d.complete(QtConcurrent::run(timeout));
+
+QCOMPARE(d.future().isFinished(), true);
+QCOMPARE(d.future().isCanceled(), false);
+
+```
+
+More examples are available : [asyncfuture/example.cpp at master · benlau/asyncfuture](https://github.com/benlau/asyncfuture/blob/master/tests/asyncfutureunittests/example.cpp)
 
 Installation
 =============
