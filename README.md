@@ -1,15 +1,13 @@
 ## AsyncFuture - Enhance QFuture for asynchronous programming
 
-QFuture represents the result of an asynchronous computation. It is a powerful component for multi-thread programming. But its usage is limited to the result of threads. It doesn't work with the asynchronous signal emitted by QObject. And it is a bit trouble to setup the listener function via QFutureWatcher. Moreover, it only provides map-reduce usage model and
-that may not fit your usage.
+QFuture represents the result of an asynchronous computation. It is a powerful component for multi-thread programming. But its usage is limited to the result of threads. And QtConcurrent only provides a MapReduce usage model that may not fit your usage. Morever, it doesn't work with the asynchronous signal emitted by QObject. And it is a bit trouble to setup the listener function via QFutureWatcher.
 
 AsyncFuture is designed to enhance the function to offer a better way to use it for asynchronous programming. This project is inspired by AsynQt and RxCpp.
 
 Features
 ========
 
-1. Convert a signal from QObject into QFuture
----------
+**1. Convert a signal from QObject into a QFuture object**
 
 ```c++
 
@@ -32,8 +30,7 @@ observe(future).subscribe([]() {
 observe(timer, &QTimer::timeout).subscribe([=]() { /*…*/ });
 ```
 
-2. Combine multiple futures with different type into a single future object
-------------
+**2. Combine multiple futures with different type into a single future object**
 
 ```c++
 /* Combine multiple futures with different type into a single future */
@@ -49,8 +46,7 @@ QFuture<void> f2 = observe(timer, &QTimer::timeout).future();
 });
 ```
 
-3. Advanced multi-threading model
-----------------------
+**3. Advanced multi-threading model**
 
 ```c++
 /* Start a thread and process its result in main thread */
