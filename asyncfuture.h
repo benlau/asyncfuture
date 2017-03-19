@@ -142,6 +142,7 @@ public:
               onCanceled);
     }
 
+
     void cancel() {
         if (resolved) {
             return;
@@ -162,6 +163,24 @@ public:
                          this, [=]() {
             this->cancel();
         });
+    }
+
+    template <typename ANY>
+    void cancel(QFuture<ANY> future) {
+        addRefCount();
+        auto onFinished = [=]() {
+            cancel();
+            decRefCount();
+        };
+
+        auto onCanceled = [=]() {
+            decRefCount();
+        };
+
+        watch(future,
+              this,
+              onFinished,
+              onCanceled);
     }
 
     void addRefCount() {
@@ -575,6 +594,12 @@ public:
         defer->complete(value);
     }
 
+    template <typename ANY>
+    void cancel(QFuture<ANY> future) {
+        defer->cancel(future);
+    }
+
+
     void cancel() {
         defer->cancel();
     }
@@ -598,6 +623,11 @@ public:
 
     void complete() {
         defer->complete();
+    }
+
+    template <typename ANY>
+    void cancel(QFuture<ANY> future) {
+        defer->cancel(future);
     }
 
     void cancel() {

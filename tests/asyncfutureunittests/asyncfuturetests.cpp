@@ -576,6 +576,73 @@ void AsyncFutureTests::test_Defer_complete_future()
     }
 }
 
+void AsyncFutureTests::test_Defer_cancel_future()
+{
+
+    auto timeout = []() {
+        Automator::wait(50);
+    };
+
+    {
+        // Case: cancel(QFuture) which could be finished without error
+        QFuture<void> future;
+
+        {
+            auto d = deferred<void>();
+            future = d.future();
+
+            // d is destroyed but complete(QFuture) increased the ref count and therefore it won't be canceled
+            d.cancel(QtConcurrent::run(timeout));
+        }
+
+        QCOMPARE(future.isFinished(), false);
+        QCOMPARE(future.isCanceled(), false);
+
+        waitUntil(future);
+
+        QCOMPARE(future.isFinished(), true);
+        QCOMPARE(future.isCanceled(), true);
+    }
+
+    {
+        // case: complete(future) which will be canceled.
+
+        auto completeSource = deferred<void>();
+        auto cancelSource = deferred<void>();
+
+        // Case: complete(QFuture) which could will be canceled
+        QFuture<void> future;
+        {
+            auto d = deferred<void>();
+            future = d.future();
+            d.complete(completeSource.future());
+            d.cancel(cancelSource.future());
+        }
+
+        QCOMPARE(future.isFinished(), false);
+        QCOMPARE(future.isCanceled(), false);
+
+        cancelSource.cancel();
+
+        QCOMPARE(future.isFinished(), false);
+        QCOMPARE(future.isCanceled(), false);
+
+        waitUntil(future, 500);
+
+        QCOMPARE(future.isFinished(), false);
+        QCOMPARE(future.isCanceled(), false);
+        // It won't reponse to a canceled future
+
+        // However, if you didn't call complete(), the future will be canceled due to ref count system
+
+        completeSource.complete();
+        QVERIFY(waitUntil(future, 1000));
+
+        QCOMPARE(future.isFinished(), true);
+        QCOMPARE(future.isCanceled(), false);
+    }
+}
+
 void AsyncFutureTests::test_Combinator()
 {
     {
