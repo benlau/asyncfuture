@@ -58,6 +58,21 @@ void AsyncFutureTests::test_QFuture_cancel()
     QCOMPARE(future.isCanceled(), true);
 }
 
+void AsyncFutureTests::test_QFuture_isResultReadyAt()
+{
+    auto defer = deferred<int>();
+    auto future = defer.future();
+
+    QVERIFY(!future.isResultReadyAt(0));
+    defer.complete(10);
+    QVERIFY(future.isResultReadyAt(0));
+    QVERIFY(!future.isResultReadyAt(1));
+    QVERIFY(future.results().size() == 1);
+    QVERIFY(future.result() == 10);
+    QVERIFY(future.results()[0] == 10);
+
+}
+
 void AsyncFutureTests::test_private_DeferredFuture()
 {
     Private::DeferredFuture<void> defer;
@@ -768,6 +783,42 @@ void AsyncFutureTests::test_Combinator()
         QCOMPARE(future.isFinished(), true);
         QCOMPARE(future.isCanceled(), true);
         QCOMPARE(canceled.called, true);
+    }
+
+}
+
+void AsyncFutureTests::test_Combinator_add_to_already_finished()
+{
+    {
+        // case: combine(true), cancel
+        auto d1 = deferred<int>();
+        auto d2 = deferred<QString>();
+        auto d3 = deferred<void>();
+        auto d4 = deferred<bool>();
+
+        Combinator copy;
+
+        {
+            auto combinator = combine();
+            copy = combinator;
+
+            combinator << d1.future() << d2.future() << d3.future();
+
+            d1.complete(1);
+            d2.complete("second");
+            d3.complete();
+
+            QVERIFY(waitUntil(combinator.future(), 1000));
+        }
+
+        copy << d4.future();
+        d4.complete(true);
+
+        QVERIFY(waitUntil(copy.future(), 1000)); // It is already resolved
+        QVERIFY(copy.future().isResultReadyAt(0));
+        QVariantList result = copy.future().result();
+        QCOMPARE(result.size(), 3);
+
     }
 
 }

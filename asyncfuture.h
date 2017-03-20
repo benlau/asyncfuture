@@ -124,7 +124,7 @@ public:
     }
 
     void complete(QFuture<T> future) {
-        addRefCount();
+        incRefCount();
         auto onFinished = [=]() {
             Value<T> value(future);
             complete(value);
@@ -167,7 +167,7 @@ public:
 
     template <typename ANY>
     void cancel(QFuture<ANY> future) {
-        addRefCount();
+        incRefCount();
         auto onFinished = [=]() {
             cancel();
             decRefCount();
@@ -183,7 +183,7 @@ public:
               onCanceled);
     }
 
-    void addRefCount() {
+    void incRefCount() {
         refCount++;
     }
 
@@ -240,10 +240,8 @@ protected:
 
 };
 
-
-
 // Obtain the result of future in QVariant.
-// It is used within Combinator only as other component do
+// It is used within Combinator only as other component do not
 // require to register QMetaType
 template <typename T>
 inline QVariant obtainFutureResult(QFuture<T> future) {
@@ -266,14 +264,20 @@ public:
 
     template <typename T>
     void addFuture(const QFuture<T> future) {
+        if (resolved) {
+            return;
+        }
         int index = count++;
         results << QVariant();
+        incRefCount();
 
         Private::watch(future, this,
                        [=]() {
             completeFutureAt(index, future);
+            decRefCount();
         },[=]() {
             cancelFutureAt(index);
+            decRefCount();
         });
     }
 
@@ -282,6 +286,22 @@ public:
     bool anyCanceled;
     bool settleAllMode;
     QVariantList results;
+
+    static QSharedPointer<CombinedFuture> create(bool settleAllMode) {
+
+        auto deleter = [](CombinedFuture *object) {
+            if (object->resolved) {
+                // If that is already resolved, it is not necessary to keep it in memory
+                object->deleteLater();
+            } else {
+                object->autoDelete = true;
+                object->decRefCount();
+            }
+        };
+
+        QSharedPointer<CombinedFuture> ptr(new CombinedFuture(settleAllMode), deleter);
+        return ptr;
+    }
 
 private:
 
@@ -640,12 +660,11 @@ private:
 
 class Combinator : public Observable<QVariantList> {
 private:
-    QPointer<Private::CombinedFuture> combinedFuture;
+    QSharedPointer<Private::CombinedFuture> combinedFuture;
 
 public:
     inline Combinator(bool settleAllMode = false) : Observable<QVariantList>() {
-        combinedFuture = new Private::CombinedFuture(settleAllMode);
-        combinedFuture->autoDelete = true;
+        combinedFuture = Private::CombinedFuture::create(settleAllMode);
         m_future = combinedFuture->future();
     }
 
@@ -667,7 +686,6 @@ public:
         combinedFuture->addFuture(future);
         return *this;
     }
-
 };
 
 template <typename T>

@@ -26,6 +26,8 @@ public slots:
 private slots:
     void test_QFuture_cancel();
 
+    void test_QFuture_isResultReadyAt();
+
     void test_private_DeferredFuture();
 
     void test_private_run();
@@ -49,4 +51,6 @@ private slots:
 
 
     void test_Combinator();
+
+    void test_Combinator_add_to_already_finished();
 };
