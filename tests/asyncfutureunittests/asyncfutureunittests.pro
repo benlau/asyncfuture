@@ -14,8 +14,7 @@ TEMPLATE = app
 
 SOURCES +=     main.cpp \
     example.cpp \
-    asyncfuturetests.cpp \
-    testfunctions.cpp
+    asyncfuturetests.cpp
 
 DEFINES += SRCDIR=\\\"$$PWD/\\\" QUICK_TEST_SOURCE_DIR=\\\"$$PWD/qmltests\\\"
 

@@ -21,6 +21,16 @@ void handleBacktrace(int sig) {
     exit(1);
 }
 
+static void waitForFinished(QThreadPool *pool)
+{
+    QEventLoop loop;
+
+    while (!pool->waitForDone(10)) {
+        loop.processEvents();
+    }
+}
+
+
 int main(int argc, char *argv[])
 {
     signal(SIGSEGV, handleBacktrace);
@@ -36,6 +46,8 @@ int main(int argc, char *argv[])
     if (!error) {
         qDebug() << "All test cases passed!";
     }
+
+    waitForFinished(QThreadPool::globalInstance());
 
     return error;
 }
