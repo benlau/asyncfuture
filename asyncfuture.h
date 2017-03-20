@@ -281,8 +281,8 @@ public:
         });
     }
 
-    int settledCount = 0;
-    int count = 0;
+    int settledCount;
+    int count;
     bool anyCanceled;
     bool settleAllMode;
     QVariantList results;
