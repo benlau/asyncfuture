@@ -127,13 +127,13 @@ public:
         incRefCount();
         auto onFinished = [=]() {
             Value<T> value(future);
-            complete(value);
-            decRefCount();
+            this->complete(value);
+            this->decRefCount();
         };
 
         auto onCanceled = [=]() {
-            cancel();
-            decRefCount();
+            this->cancel();
+            this->decRefCount();
         };
 
         watch(future,
