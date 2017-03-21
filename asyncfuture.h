@@ -553,14 +553,16 @@ public:
 
     template <typename Functor1, typename Functor2>
     void subscribe(Functor1 onCompleted,
-                   Functor2 onCancelled) {
+                   Functor2 onCanceled) {
+
+        auto future = m_future;
 
         Private::watch(m_future,
                        QThread::currentThread(),
                       [=](){
-            Private::run(onCompleted, m_future);
+            Private::run(onCompleted, future);
         },[=]() {
-            Private::run(onCancelled, m_future);
+            Private::run(onCanceled, future);
         });
     }
 

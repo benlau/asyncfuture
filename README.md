@@ -115,7 +115,7 @@ auto d = deferred<void>();
 
 d.complete(QtConcurrent::run(timeout));
 
-QCOMPARE(d.future().isFinished(), true);
+QCOMPARE(d.future().isFinished(), false);
 QCOMPARE(d.future().isCanceled(), false);
 
 ```
@@ -160,7 +160,7 @@ Still under construction
 AsyncFuture::observe(QObject* object, PointerToMemberFunc signal)
 -------------------
 
-This function creates an Observable&lt;ARG&gt; object which contains a future to represent the result of the signal.You could obtain the future by the future() method. And observe the result of the future by subscribe() / context() methods
+This function creates an Observable&lt;ARG&gt; object which contains a future to represent the result of the signal. You could obtain the future by the future() method. And observe the result by subscribe() / context() methods
 
 The ARG type is equal to the first parameter of the signal. If the signal does not contain any argument, ARG will be void. In case it has more than one argument, the rest will be ignored.
 
@@ -169,10 +169,12 @@ QFuture<void> f1 = observe(timer, &QTimer::timeout).future();
 QFuture<bool> f2 = observe(button, &QAbstractButton::toggled).future();
 ```
 
+See [Observable`<T>`](#observablet)
+
 AsyncFuture::observe(QFuture&lt;T&gt; future)
 -------------
 
-This function creates an Observable<T> object which provides an interface for observing the input future. See [Observable<T>](#observable)
+This function creates an Observable<T> object which provides an interface for observing the input future. See [Observable`<T>`](#observablet)
 
 ```c++
 // Convert a signal from QObject into QFuture
