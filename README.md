@@ -201,10 +201,44 @@ observe(future).context(context, [](bool toggled) {
 AsyncFuture::combine(bool settleAllMode)
 ------------
 
+This function creates a Combinator object (inherit `Observable<void>`) for combining multiple future objects with different type into a single future.
+
+For example:
+
+```c++
+
+QFuture<QImage> f1 = QtConcurrent::run(readImage, QString("image.jpg"));
+QFuture<void> f2 = observe(timer, &QTimer::timeout).future();
+
+QFuture<QImage> result = (combine(false) << f1 << f2).subscribe([=](){
+    // Read an image but do not return before timeout
+    return f1.result();
+}).future();
+
+```
+
+Once all the observed futures finished, the contained future will be finished too.  And it will be cancelled immediately if any one of the observed future is cancelled. In case you wish the cancellation take place after all the futures finished, you should set `settleAllMode` flag to on.
 
 
 AsyncFuture::deferred&lt;T&gt;()
 ----------
+
+The deferred() function return a Deferred object that allows you to set QFuture completed/cancelled manually. 
+
+```c++
+auto d = deferred<bool>();
+
+observe(d.future()).subscribe([]() {
+    qDebug() << "onCompleted";
+}, []() {
+    qDebug() << "onCancel";
+});
+
+d.complete(true); // or d.cancel();
+```
+
+See (`Deferred<T>`)[#deferredt]
+
 
 Observable&lt;T&gt;
 ------------
