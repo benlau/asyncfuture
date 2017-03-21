@@ -190,7 +190,7 @@ void Example::example_promise_like_timeout()
 
     auto readFileworker = [](QString fileName) -> QString {
         Q_UNUSED(fileName);
-        Automator::wait(100);
+        Automator::wait(1000);
         return "";
     };
 
