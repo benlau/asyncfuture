@@ -164,23 +164,47 @@ This function creates an Observable<ARG> object which contains a future to repre
 
 If the signal does not contain any argument, ARG will be <void>. In case it has more than one argument, the rest will be ignored.
 
-```
+```c++
 QFuture<void> f1 = observe(timer, &QTimer::timeout).future();
 QFuture<bool> f2 = observe(button, &QAbstractButton::toggled).future();
 ```
 
-AsyncFuture::observe(QFuture<T> future)
+AsyncFuture::observe(QFuture`<T>` future)
 -------------
 
-This function creates an Observable<T> object which provides an interface for observing the input future. See Observable<T>
+This function creates an Observable<T> object which provides an interface for observing the input future. See [Observable<T>](#observable)
 
-AsyncFuture::combine()
+```c++
+// Convert a signal from QObject into QFuture
+QFuture<bool> future = observe(button, &QAbstractButton::toggled).future();
+
+
+// Listen from the future without using QFutureWatcher<T>
+observe(future).subscribe([](bool toggled) {
+    // onCompleted. It is invoked when the observed future is finished successfully
+    qDebug() << "onCompleted";
+},[]() {
+    // onCanceled
+    qDebug() << "onCancel";
+});
+
+observe(future).context(context, [](bool toggled) {
+    // simialr to subscribe, but this function will not be invoked if context object
+    // is destroyed.
+});
+
+```
+
+
+AsyncFuture::combine(bool settleAllMode)
 ------------
+
+
 
 AsyncFuture::deferred<T>()
 ----------
 
-Observable<T>
+Observable`<T>`
 ------------
 
 **context**
