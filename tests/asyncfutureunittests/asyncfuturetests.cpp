@@ -674,66 +674,55 @@ void AsyncFutureTests::test_Combinator()
         auto d1 = deferred<int>();
         auto d2 = deferred<QString>();
         auto d3 = deferred<void>();
+        auto c = Callable<void>();
 
         auto combinator = combine();
         combinator << d1.future() << d2.future() << d3.future();
 
-        QFuture<QVariantList> future = combinator.future();
-        QVariantList results;
+        QFuture<void> future = combinator.future();
 
-        observe(future).subscribe([&](QVariantList value) {
-            results = value;
-        });
+        observe(future).subscribe(c.func);
 
         d1.complete(1);
         d2.complete("second");
         d3.complete();
 
-        QCOMPARE(results.isEmpty(), true);
+        QCOMPARE(c.called, false);
         QCOMPARE(future.isFinished(), false);
 
         QVERIFY(waitUntil(future,1000));
 
+        QCOMPARE(c.called, true);
         QCOMPARE(future.isFinished(), true);
-
-        QCOMPARE(results.size(), 3);
-        QVERIFY(results[0] == 1);
-        QVERIFY(results[1] == "second");
     }
 
 
     {
         // case: all completed (but Combinator was destroyed )
-        QFuture<QVariantList> future ;
+        QFuture<void> future ;
 
         auto d1 = deferred<int>();
         auto d2 = deferred<QString>();
         auto d3 = deferred<void>();
+        auto c = Callable<void>();
 
         {
             future = (combine() << d1.future() << d2.future() << d3.future()).future();
         }
 
-        QVariantList results;
-
-        observe(future).subscribe([&](QVariantList value) {
-            results = value;
-        });
+        observe(future).subscribe(c.func);
 
         d1.complete(1);
         d2.complete("second");
         d3.complete();
 
-        QCOMPARE(results.isEmpty(), true);
+        QCOMPARE(c.called, false);
         QCOMPARE(future.isFinished(), false);
 
         QVERIFY(waitUntil(future,1000));
 
         QCOMPARE(future.isFinished(), true);
-
-        QCOMPARE(results.size(), 3);
-        QVERIFY(results[0] == 1);
-        QVERIFY(results[1] == "second");
+        QCOMPARE(c.called, true);
     }
 
     {
@@ -745,7 +734,7 @@ void AsyncFutureTests::test_Combinator()
         auto combinator = combine();
         combinator << d1.future() << d2.future() << d3.future();
 
-        QFuture<QVariantList> future = combinator.future();
+        QFuture<void> future = combinator.future();
 
         Callable<void> canceled;
 
@@ -770,9 +759,9 @@ void AsyncFutureTests::test_Combinator()
         auto combinator = combine(true);
         combinator << d1.future() << d2.future() << d3.future();
 
-        QFuture<QVariantList> future = combinator.future();
+        QFuture<void> future = combinator.future();
 
-        Callable<QVariantList> completed;
+        Callable<void> completed;
         Callable<void> canceled;
 
         observe(future).subscribe(completed.func, canceled.func);
@@ -824,10 +813,6 @@ void AsyncFutureTests::test_Combinator_add_to_already_finished()
         d4.complete(true);
 
         QVERIFY(waitUntil(copy.future(), 1000)); // It is already resolved
-        QVERIFY(copy.future().isResultReadyAt(0));
-        QVariantList result = copy.future().result();
-        QCOMPARE(result.size(), 3);
-
     }
 
 }

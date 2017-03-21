@@ -4,7 +4,6 @@
 #include <QPointer>
 #include <QThread>
 #include <QFutureWatcher>
-#include <QVariant>
 #include <functional>
 
 namespace AsyncFuture {
@@ -241,23 +240,9 @@ protected:
 
 };
 
-// Obtain the result of future in QVariant.
-// It is used within Combinator only as other component do not
-// require to register QMetaType
-template <typename T>
-inline QVariant obtainFutureResult(QFuture<T> future) {
-    return future.result();
-}
-
-template <>
-inline QVariant obtainFutureResult<void>(QFuture<void> future) {
-    Q_UNUSED(future);
-    return QVariant();
-}
-
-class CombinedFuture: public DeferredFuture<QVariantList> {
+class CombinedFuture: public DeferredFuture<void> {
 public:
-    CombinedFuture(bool settleAllMode = false) : DeferredFuture<QVariantList>(), settleAllMode(settleAllMode) {
+    CombinedFuture(bool settleAllMode = false) : DeferredFuture<void>(), settleAllMode(settleAllMode) {
         settledCount = 0;
         count = 0;
         anyCanceled = false;
@@ -269,12 +254,11 @@ public:
             return;
         }
         int index = count++;
-        results << QVariant();
         incRefCount();
 
         Private::watch(future, this,
                        [=]() {
-            completeFutureAt(index, future);
+            completeFutureAt(index);
             decRefCount();
         },[=]() {
             cancelFutureAt(index);
@@ -286,7 +270,6 @@ public:
     int count;
     bool anyCanceled;
     bool settleAllMode;
-    QVariantList results;
 
     static QSharedPointer<CombinedFuture> create(bool settleAllMode) {
 
@@ -306,10 +289,9 @@ public:
 
 private:
 
-    template <typename T>
-    void completeFutureAt(int index, QFuture<T> future) {
+    void completeFutureAt(int index) {
+        Q_UNUSED(index);
         settledCount++;
-        results[index] = Private::obtainFutureResult(future);
         checkFulfilled();
     }
 
@@ -334,7 +316,7 @@ private:
             if (anyCanceled) {
                 cancel();
             } else {
-                complete(results);
+                complete();
             }
         }
     }
@@ -492,6 +474,9 @@ void>::type
 voidInvoke(Functor functor, QFuture<T> future) {
     Q_UNUSED(future);
     functor();
+    /* Toubleshooting:
+     * 1) Are you observing a QFuture<void> but require an input argument in your callback function?
+     */
 }
 
 template <typename Functor, typename T>
@@ -706,12 +691,12 @@ private:
     QSharedPointer<Private::DeferredFuture<void> > defer;
 };
 
-class Combinator : public Observable<QVariantList> {
+class Combinator : public Observable<void> {
 private:
     QSharedPointer<Private::CombinedFuture> combinedFuture;
 
 public:
-    inline Combinator(bool settleAllMode = false) : Observable<QVariantList>() {
+    inline Combinator(bool settleAllMode = false) : Observable<void>() {
         combinedFuture = Private::CombinedFuture::create(settleAllMode);
         m_future = combinedFuture->future();
     }

@@ -63,15 +63,14 @@ void Example::example_combine_multiple_future()
 
     QFuture<void> f2 = observe(timer, &QTimer::timeout).future();
 
-    (combine() << f1 << f2).subscribe([](QVariantList result){
-        // result[0] = QImage
-        qDebug() << result;
-    });
+    QFuture<QImage> result = (combine() << f1 << f2).subscribe([=](){
+        // Read an image but do not return before timeout
+        return f1.result();
+    }).future();
 
     timer->start();
 
-    waitUntil(f1);
-    waitUntil(f2);
+    QVERIFY(waitUntil(result, 1000));
 
     timer->deleteLater();
 }

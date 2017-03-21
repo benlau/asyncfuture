@@ -44,11 +44,11 @@ QFuture<QImage> f1 = QtConcurrent::run(readImage, QString("image.jpg"));
 
 QFuture<void> f2 = observe(timer, &QTimer::timeout).future();
 
-(combine() << f1 << f2).subscribe([](QVariantList result){
-    // Read an image
-    // result[0] = QImage
-    qDebug() << result;
-});
+QFuture<QImage> result = (combine() << f1 << f2).subscribe([=](){
+    // Read an image but do not return before timeout
+    return f1.result();
+}).future();
+
 ```
 
 **3. Advanced multi-threading model**
