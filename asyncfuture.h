@@ -199,6 +199,7 @@ public:
         }
     }
 
+    /// Create a DeferredFugture instance in a shared pointer
     static QSharedPointer<DeferredFuture<T> > create() {
 
         auto deleter = [](DeferredFuture<T> *object) {
@@ -509,6 +510,26 @@ run(Functor functor, QFuture<T> future) {
     return Value<void>();
 }
 
+/// Create a DeferredFuture will execute the callback functions when observed future finished
+template <typename DeferredType, typename RetType, typename T, typename Completed, typename Canceled>
+static DeferredFuture<DeferredType>* execute(QFuture<T> future, QObject* contextObject, Completed onCompleted, Canceled onCanceled) {
+    DeferredFuture<DeferredType>* defer = new DeferredFuture<DeferredType>();
+    defer->autoDelete = true;
+    watch(future,
+          contextObject,[=]() {
+        Value<RetType> value = run(onCompleted, future);
+        defer->complete(value);
+    }, [=]() {
+        onCanceled();
+        defer->cancel();
+    });
+
+    defer->cancel(contextObject, &QObject::destroyed);
+
+    return defer;
+}
+
+
 } // End of Private Namespace
 
 template <typename T>
@@ -577,24 +598,14 @@ private:
 
         static_assert(Private::function_traits<Functor>::arity <= 1, "context(): Callback should take not more than one parameter");
 
-        auto defer = new Private::DeferredFuture<ObservableType> ();
-        defer->autoDelete = true;
-
-        defer->cancel(contextObject, &QObject::destroyed);
-
-        auto future = m_future; // Observable could be destroyed. So it should keep the future by itself.
-
-        Private::watch(future,
-                       defer,
-                       [future, defer, functor]() {
-            Private::Value<RetType> value = Private::run(functor, future);
-            defer->complete(value);
-        },[defer](){
-            defer->cancel();
-        });
+        auto defer = Private::execute<ObservableType, RetType>(m_future,
+                                                               contextObject,
+                                                               functor,
+                                                               [](){});
 
         return Observable<ObservableType>(defer->future());
     }
+
 
 };
 
@@ -669,7 +680,6 @@ public:
         combinedFuture = Private::CombinedFuture::create(settleAllMode);
         m_future = combinedFuture->future();
     }
-
     inline ~Combinator() {
         if (!combinedFuture.isNull() && combinedFuture->count == 0) {
             // No future added
