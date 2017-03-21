@@ -406,30 +406,39 @@ void AsyncFutureTests::test_Observable_signal_destroyed()
 void AsyncFutureTests::test_Observable_subscribe()
 {
     {
+        // complete
         auto o = deferred<int>();
         auto c1 = Callable<int>();
-        o.subscribe(c1.func);
+        auto result = o.subscribe(c1.func).future();
+
+        QCOMPARE(result.isFinished(), false);
         o.complete(10);
 
         QCOMPARE(c1.called, false);
         waitUntil(o.future());
         QCOMPARE(c1.called, true);
         QCOMPARE(c1.value, 10);
+        QCOMPARE(result.isFinished(), true);
+        QCOMPARE(result.isCanceled(), false);
     }
 
     {
+        // cancel
         auto o = deferred<int>();
         auto c1 = Callable<int>();
         auto c2 = Callable<void>();
-        o.subscribe(c1.func, c2.func);
+        auto result = o.subscribe(c1.func, c2.func).future();
         o.cancel();
 
         QCOMPARE(c1.called, false);
+        QCOMPARE(result.isFinished(), false);
 
         waitUntil(o.future());
 
         QCOMPARE(c1.called, false);
         QCOMPARE(c2.called, true);
+        QCOMPARE(result.isFinished(), true);
+        QCOMPARE(result.isCanceled(), true);
     }
 }
 

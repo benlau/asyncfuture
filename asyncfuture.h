@@ -556,7 +556,7 @@ public:
     Observable<typename Private::function_traits<Functor>::result_type>
     >::type
     context(QObject* contextObject, Functor functor)  {
-        return context<typename Private::function_traits<Functor>::result_type,
+        return _context<typename Private::function_traits<Functor>::result_type,
                        typename Private::function_traits<Functor>::result_type
                 >(contextObject, functor);
     }
@@ -567,34 +567,59 @@ public:
     >::type
     context(QObject* contextObject, Functor functor)  {
         /* For functor return QFuture */
-        return context<typename Private::future_traits<typename Private::function_traits<Functor>::result_type>::arg_type,
+        return _context<typename Private::future_traits<typename Private::function_traits<Functor>::result_type>::arg_type,
                        typename Private::function_traits<Functor>::result_type
                 >(contextObject, functor);
     }
 
-    template <typename Functor1, typename Functor2>
-    void subscribe(Functor1 onCompleted,
-                   Functor2 onCanceled) {
-
-        auto future = m_future;
-
-        Private::watch(m_future,
-                       QThread::currentThread(),
-                      [=](){
-            Private::run(onCompleted, future);
-        },[=]() {
-            Private::run(onCanceled, future);
-        });
+    template <typename Completed, typename Canceled>
+    typename std::enable_if< !Private::future_traits<typename Private::function_traits<Completed>::result_type>::is_future,
+    Observable<typename Private::function_traits<Completed>::result_type>
+    >::type
+    subscribe(Completed onCompleted,
+              Canceled onCanceled) {
+        /* For functor return a regular value */
+        return _subscribe<typename Private::function_traits<Completed>::result_type,
+                         typename Private::function_traits<Completed>::result_type
+                >(onCompleted, onCanceled);
     }
 
-    template <typename Functor1>
-    void subscribe(Functor1 onCompleted) {
-        subscribe(onCompleted, [](){});
+    template <typename Completed>
+    typename std::enable_if< !Private::future_traits<typename Private::function_traits<Completed>::result_type>::is_future,
+    Observable<typename Private::function_traits<Completed>::result_type>
+    >::type
+    subscribe(Completed onCompleted) {
+        return _subscribe<typename Private::function_traits<Completed>::result_type,
+                         typename Private::function_traits<Completed>::result_type
+                >(onCompleted, [](){});
     }
+
+
+    template <typename Completed, typename Canceled>
+    typename std::enable_if<Private::future_traits<typename Private::function_traits<Completed>::result_type>::is_future,
+    Observable<typename Private::function_traits<Completed>::result_type>
+    >::type
+    subscribe(Completed onCompleted,
+              Canceled onCanceled) {
+        return _subscribe<typename Private::future_traits<typename Private::function_traits<Completed>::result_type>::arg_type,
+                         typename Private::function_traits<Completed>::result_type
+                >(onCompleted, onCanceled);
+    }
+
+    template <typename Completed>
+    typename std::enable_if<Private::future_traits<typename Private::function_traits<Completed>::result_type>::is_future,
+    Observable<typename Private::function_traits<Completed>::result_type>
+    >::type
+    subscribe(Completed onCompleted) {
+        return _subscribe<typename Private::future_traits<typename Private::function_traits<Completed>::result_type>::arg_type,
+                         typename Private::function_traits<Completed>::result_type
+                >(onCompleted, [](){});
+    }
+
 
 private:
     template <typename ObservableType, typename RetType, typename Functor>
-    Observable<ObservableType> context(QObject* contextObject, Functor functor)  {
+    Observable<ObservableType> _context(QObject* contextObject, Functor functor)  {
 
         static_assert(Private::function_traits<Functor>::arity <= 1, "context(): Callback should take not more than one parameter");
 
@@ -606,6 +631,16 @@ private:
         return Observable<ObservableType>(defer->future());
     }
 
+    template <typename ObservableType, typename RetType, typename Completed, typename Canceled>
+    Observable<ObservableType> _subscribe(Completed onCompleted, Canceled onCanceled) {
+
+        auto defer = Private::execute<ObservableType, RetType>(m_future,
+                                                               QThread::currentThread(),
+                                                               onCompleted,
+                                                               onCanceled);
+
+        return Observable<ObservableType>(defer->future());
+    }
 
 };
 
