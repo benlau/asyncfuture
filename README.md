@@ -160,16 +160,16 @@ Still under construction
 AsyncFuture::observe(QObject* object, PointerToMemberFunc signal)
 -------------------
 
-This function creates an Observable<ARG> object which contains a future to represent the result of the signal. The ARG type is equal to the first parameter of the signal. You could obtain the future by the future() method. And observe the result of the future by subscribe() / context() methods
+This function creates an Observable&lt;ARG&gt; object which contains a future to represent the result of the signal.You could obtain the future by the future() method. And observe the result of the future by subscribe() / context() methods
 
-If the signal does not contain any argument, ARG will be <void>. In case it has more than one argument, the rest will be ignored.
+The ARG type is equal to the first parameter of the signal. If the signal does not contain any argument, ARG will be void. In case it has more than one argument, the rest will be ignored.
 
 ```c++
 QFuture<void> f1 = observe(timer, &QTimer::timeout).future();
 QFuture<bool> f2 = observe(button, &QAbstractButton::toggled).future();
 ```
 
-AsyncFuture::observe(QFuture`<T>` future)
+AsyncFuture::observe(QFuture&lt;T&gt; future)
 -------------
 
 This function creates an Observable<T> object which provides an interface for observing the input future. See [Observable<T>](#observable)
@@ -201,10 +201,10 @@ AsyncFuture::combine(bool settleAllMode)
 
 
 
-AsyncFuture::deferred<T>()
+AsyncFuture::deferred&lt;T&gt;()
 ----------
 
-Observable`<T>`
+Observable&lt;T&gt;
 ------------
 
 **context**
