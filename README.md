@@ -84,9 +84,9 @@ QFuture<int> f2 = observe(f1).context(contextObject, [=](QFuture<int> future) {
 
 ```
 
-**4. Promise like interface**
+**4. Use QFuture like a Promise object**
 
-Complete / cancel a future on your own choice
+Create a QFuture and Complete / cancel it by yourself.
 
 ```c++
 // Complete / cancel a future on your own choice
@@ -133,10 +133,6 @@ defer.cancel(timeout);
 
 return defer.future();
 ```
-
-The deferred<T>() function return a Deferred<T> object that allows you to manipulate a QFuture manually. The future() function return a forever running QFuture<T> unless you have called Deferred.complete() / Deferred.cancel() manually, or the Deferred object is destroyed without observed any future.
-
-The usage of complete/cancel with a Deferred object is pretty similar to the resolve/reject in a Promise object. You could complete a future by calling complete with a result value. If you give it another future, then it will observe the input future and change status once that is finished.
 
 More examples are available at : [asyncfuture/example.cpp at master · benlau/asyncfuture](https://github.com/benlau/asyncfuture/blob/master/tests/asyncfutureunittests/example.cpp)
 
@@ -237,18 +233,51 @@ observe(d.future()).subscribe([]() {
 d.complete(true); // or d.cancel();
 ```
 
-See (`Deferred<T>`)[#deferredt]
-
+See [`Deferred<T>`](#deferredt)
 
 Observable&lt;T&gt;
 ------------
 
-**context**
+Obsevable<T> is a chainable utility for observing a QFuture object. It is created by the observe() function. It can register multiple callbacks to be triggered in different situations. And that will create a new Observable<T> / QFuture object to represent the result of the callback function. It may even call QtConcurrent::run() within the callback function to create a thread. Therefore, it could create a more complex/flexible workflow.
 
-**subscribe**
+**QFuture;T&gt future()**
+
+Obtain the observing QFuture object to represent the result of this Observable object
+
+**Obsverable&lt;R&gt; context(QObject* contextObject, Completed onCompleted)**
+
+Add a callback function that listens to the finished signal from the observing QFuture object. The callback won't be triggered if the future is cancelled.
+
+The callback is invoked in the thread of the context object, In case the context object is destroyed before the finished signal, the callback function won't be triggered and the returned Observable object will cancel its future.
+
+The return value is an `Observable<R>` object where R is the return type of the onCompleted callback.
+
+```c++
+
+auto validator = [](QImage input) -> bool {
+   /* A dummy function. Return true for any case. */
+   return true;
+};
+
+QFuture<QImage> reading = QtConcurrent::run(readImage, QString("image.jpg"));
+
+QFuture<bool> validating = observe(reading).context(contextObject, validator).future();
+```
+
+In the above example, the result of `validating` is supposed to be true. However, if the `contextObject` is destroyed before `reading` future finished, it will be cancelled and the result will become undefined.
+
+
+**Obsverable&lt;T&gt; subscribe(Completed onCompleted, Canceled onCanceled)**
+
+Callback Funcion
+---------------
 
 Deferred<T>
 -----------
+
+The `deferred<T>`() function return a Deferred<T> object that allows you to manipulate a QFuture manually. The future() function return a forever running QFuture<T> unless you have called Deferred.complete() / Deferred.cancel() manually, or the Deferred object is destroyed without observed any future.
+
+The usage of complete/cancel with a Deferred object is pretty similar to the resolve/reject in a Promise object. You could complete a future by calling complete with a result value. If you give it another future, then it will observe the input future and change status once that is finished.
 
 **complete(T) / complete()**
 
@@ -257,6 +286,7 @@ Deferred<T>
 **cancel()**
 
 **cancel(QFuture<ANY>)**
+
 
 
 
