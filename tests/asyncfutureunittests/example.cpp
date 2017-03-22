@@ -13,7 +13,7 @@ using namespace Test;
 Example::Example(QObject *parent) : QObject(parent)
 {
 
-    // This function do nothing but could make Qt Creator Autotests plugin recognize QuickTests
+    // This function do nothing but could make Qt Creator Autotests plugin recognize this test
     auto ref =[=]() {
         QTest::qExec(this, 0, 0);
     };

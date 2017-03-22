@@ -110,16 +110,12 @@ public:
 
     template <typename R>
     void complete(Value<R> value) {
-        if (resolved) {
-            return;
-        }
-        resolved = true;
-        reportResult(value);
-        QFutureInterface<T>::reportFinished();
+        this->complete(value.value);
+    }
 
-        if (autoDelete) {
-            deleteLater();
-        }
+    void complete(Value<void> value) {
+        Q_UNUSED(value);
+        this->complete();
     }
 
     void complete(QFuture<T> future) {

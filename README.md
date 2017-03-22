@@ -244,7 +244,7 @@ Obsevable<T> is a chainable utility for observing a QFuture object. It is create
 
 Obtain the observing QFuture object to represent the result of this Observable object
 
-**Obsverable&lt;R&gt; context(QObject&#42; contextObject, Completed onCompleted)**
+**Observable&lt;R&gt; context(QObject&#42; contextObject, Completed onCompleted)**
 
 Add a callback function that listens to the finished signal from the observing QFuture object. The callback won't be triggered if the future is cancelled.
 
@@ -267,7 +267,7 @@ QFuture<bool> validating = observe(reading).context(contextObject, validator).fu
 In the above example, the result of `validating` is supposed to be true. However, if the `contextObject` is destroyed before `reading` future finished, it will be cancelled and the result will become undefined.
 
 
-**Obsverable&lt;T&gt; subscribe(Completed onCompleted, Canceled onCanceled)**
+**Observable&lt;T&gt; subscribe(Completed onCompleted, Canceled onCanceled)**
 
 Completed Callback Funcion
 ---------------

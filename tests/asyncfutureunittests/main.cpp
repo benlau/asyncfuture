@@ -7,6 +7,7 @@
 #include <QtQuickTest>
 #include "example.h"
 #include "asyncfuturetests.h"
+#include "bugtests.h"
 
 void handleBacktrace(int sig) {
     void *array[100];
@@ -39,6 +40,7 @@ int main(int argc, char *argv[])
 
     TestRunner runner;
     runner.add<AsyncFutureTests>();
+    runner.add<BugTests>();
     runner.add<Example>();
 
     bool error = runner.exec(app.arguments());

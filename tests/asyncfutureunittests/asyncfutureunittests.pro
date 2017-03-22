@@ -14,7 +14,8 @@ TEMPLATE = app
 
 SOURCES +=     main.cpp \
     example.cpp \
-    asyncfuturetests.cpp
+    asyncfuturetests.cpp \
+    bugtests.cpp
 
 DEFINES += SRCDIR=\\\"$$PWD/\\\" QUICK_TEST_SOURCE_DIR=\\\"$$PWD/qmltests\\\"
 
@@ -27,5 +28,6 @@ DISTFILES +=     qpm.json  \
 HEADERS += \
     example.h \
     asyncfuturetests.h \
-    testfunctions.h
+    testfunctions.h \
+    bugtests.h
 
