@@ -92,6 +92,10 @@ public:
         }
         resolved = true;
         QFutureInterface<T>::reportFinished();
+
+        if (autoDelete) {
+            deleteLater();
+        }
     }
 
     template <typename R>
