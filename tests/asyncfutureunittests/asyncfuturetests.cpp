@@ -756,7 +756,7 @@ void AsyncFutureTests::test_Combinator()
         auto d2 = deferred<QString>();
         auto d3 = deferred<void>();
 
-        auto combinator = combine(true);
+        auto combinator = combine(AllSettled);
         combinator << d1.future() << d2.future() << d3.future();
 
         QFuture<void> future = combinator.future();

@@ -691,13 +691,18 @@ private:
     QSharedPointer<Private::DeferredFuture<void> > defer;
 };
 
+typedef enum {
+    FailFast,
+    AllSettled
+} CombinatorMode;
+
 class Combinator : public Observable<void> {
 private:
     QSharedPointer<Private::CombinedFuture> combinedFuture;
 
 public:
-    inline Combinator(bool settleAllMode = false) : Observable<void>() {
-        combinedFuture = Private::CombinedFuture::create(settleAllMode);
+    inline Combinator(CombinatorMode mode = FailFast) : Observable<void>() {
+        combinedFuture = Private::CombinedFuture::create(mode == AllSettled);
         m_future = combinedFuture->future();
     }
     inline ~Combinator() {
@@ -754,8 +759,8 @@ auto deferred() -> Deferred<T> {
     return Deferred<T>();
 }
 
-inline Combinator combine(bool settleAllMode = false) {
-    return Combinator(settleAllMode);
+inline Combinator combine(CombinatorMode mode = FailFast) {
+    return Combinator(mode);
 }
 
 }
