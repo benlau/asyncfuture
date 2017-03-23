@@ -1,7 +1,7 @@
 ## AsyncFuture - Use QFuture like a Promise object
 [![Build Status](https://travis-ci.org/benlau/asyncfuture.svg?branch=master)](https://travis-ci.org/benlau/asyncfuture)
 
-QFuture is usually used together with QtConcurrent to represent the result of an asynchronous computation. It is a powerful component for multi-thread programming. But its usage is limited to the result of threads. And QtConcurrent only provides a MapReduce model that may not fit your use cases. Moreover, it doesn't work with the asynchronous signal emitted by QObject. And it is a bit trouble to setup the listener function via QFutureWatcher.
+QFuture is usually used together with QtConcurrent to represent the result of an asynchronous computation. It is a powerful component for multi-thread programming. But its usage is limited to the result of threads. And QtConcurrent only provides MapReduce / FilterReduce model that may not fit your use cases. Moreover, it doesn't work with the asynchronous signal emitted by QObject. And it is a bit trouble to setup the listener function via QFutureWatcher.
 
 AsyncFuture is designed to enhance the function to offer a better way to use it for asynchronous programming. It provides a Promise object like interface. This project is inspired by AsynQt and RxCpp.
 
@@ -51,40 +51,7 @@ QFuture<QImage> result = (combine() << f1 << f2).subscribe([=](){
 
 ```
 
-**3. Advanced multi-threading model**
-
-```c++
-/* Start a thread and process its result in main thread */
-
-QFuture<QImage> reading = QtConcurrent::run(readImage, QString("image.jpg"));
-
-QFuture<bool> validating = observe(reading).context(contextObject, validator).future();
-
-    // Read image by a thread, when it is ready, run the validator function
-    // in the thread of the contextObject(e.g main thread)
-    // And it return another QFuture to represent the final result.
-
-/* Start a thread and process its result in main thread, then start another thread. */
-
-QFuture<int> f1 = QtConcurrent::mapped(input, mapFunc);
-
-QFuture<int> f2 = observe(f1).context(contextObject, [=](QFuture<int> future) {
-    // You may use QFuture as the input argument of your callback function
-    // It will be set to the observed future object. So that you may obtain
-    // the value of results()
-
-    qDebug() << future.results();
-
-    // Return another QFuture is possible.
-    return QtConcurrent::run(reducerFunc, future.results());
-}).future();
-
-// f2 is constructed before the QtConcurrent::run statement
-// But its value is equal to the result of reducerFunc
-
-```
-
-**4. Use QFuture like a Promise object**
+**3. Use QFuture like a Promise object**
 
 Create a QFuture and Complete / cancel it by yourself.
 
@@ -133,6 +100,40 @@ defer.cancel(timeout);
 
 return defer.future();
 ```
+
+**4. Advanced multi-threading programming model**
+
+```c++
+/* Start a thread and process its result in main thread */
+
+QFuture<QImage> reading = QtConcurrent::run(readImage, QString("image.jpg"));
+
+QFuture<bool> validating = observe(reading).context(contextObject, validator).future();
+
+    // Read image by a thread, when it is ready, run the validator function
+    // in the thread of the contextObject(e.g main thread)
+    // And it return another QFuture to represent the final result.
+
+/* Start a thread and process its result in main thread, then start another thread. */
+
+QFuture<int> f1 = QtConcurrent::mapped(input, mapFunc);
+
+QFuture<int> f2 = observe(f1).context(contextObject, [=](QFuture<int> future) {
+    // You may use QFuture as the input argument of your callback function
+    // It will be set to the observed future object. So that you may obtain
+    // the value of results()
+
+    qDebug() << future.results();
+
+    // Return another QFuture is possible.
+    return QtConcurrent::run(reducerFunc, future.results());
+}).future();
+
+// f2 is constructed before the QtConcurrent::run statement
+// But its value is equal to the result of reducerFunc
+
+```
+
 
 More examples are available at : [asyncfuture/example.cpp at master · benlau/asyncfuture](https://github.com/benlau/asyncfuture/blob/master/tests/asyncfutureunittests/example.cpp)
 
@@ -235,6 +236,8 @@ d.complete(true); // or d.cancel();
 
 See [`Deferred<T>`](#deferredt)
 
+![AsyncFuture Class Diagram](https://raw.githubusercontent.com/benlau/junkcode/master/docs/AsyncFuture%20Class%20Diagram.png)
+
 Observable&lt;T&gt;
 ------------
 
@@ -242,7 +245,7 @@ Obsevable<T> is a chainable utility for observing a QFuture object. It is create
 
 **QFuture&lt;T&gt; future()**
 
-Obtain the observing QFuture object to represent the result of this Observable object
+Obtain the QFuture object to represent the result.
 
 **Observable&lt;R&gt; context(QObject&#42; contextObject, Completed onCompleted)**
 
@@ -290,7 +293,7 @@ observe(reading).subscribe([](QFuture<QImage> future) {
 
 The return type can be none or any kind of value. That would determine what type of `Observable<R>` generated by context()/subscribe().
 
-In case, you return a QFuture object. Then the new `Observable<R>` object will be deferred to complete/cancel until your future object is resolved. Therefore, you could run QtConcurrent::run within your callback function to make a more complex/flexible multiple threading programming models.
+In case, you return a QFuture object. Then the new `Observable<R>` object will be deferred to complete/cancel until your future object is resolved. Therefore, you could run QtConcurrent::run within your callback function to make a more complex/flexible multi-threading programming models.
 
 ```c++
 
@@ -316,9 +319,36 @@ QFuture<int> f2 = observe(f1).context(contextObject, [=](QFuture<int> future) {
 Deferred&lt;T&gt;
 -----------
 
-The `deferred<T>`() function return a Deferred<T> object that allows you to manipulate a QFuture manually. The future() function return a forever running QFuture<T> unless you have called Deferred.complete() / Deferred.cancel() manually, or the Deferred object is destroyed without observed any future.
+The `deferred<T>()` function return a Deferred<T> object that allows you to manipulate a QFuture manually. The future() function return a running QFuture<T>. You have to call Deferred.complete() / Deferred.cancel() to trigger the status changes.
 
-The usage of complete/cancel with a Deferred object is pretty similar to the resolve/reject in a Promise object. You could complete a future by calling complete with a result value. If you give it another future, then it will observe the input future and change status once that is finished.
+The usage of complete/cancel in a Deferred object is pretty similar to the resolve/reject in a Promise object. You could complete a future by calling complete with a result value. If you give it another future, then it will observe the input future and change status once that is finished.
+
+**Auto Cancellation**
+
+The `Deferred<T>` object is an explicitly shared class. You may own multiple copies and they are pointed to the same piece of shared data. In case, all of the instances are destroyed, it will cancel its future automatically.
+
+But there has an exception if you have even called Deferred.complete(`QFuture<T>`) / Deferred.cancel(`QFuture<ANY>`) then it won't cancel its future due to destruction. That will leave to the observed future to determine the final state.
+
+```c++
+  QFuture<void> future;
+  {
+
+    auto defer = deferred<void>();
+    future = defer.future();
+  }
+  QCOMPARE(future.isCanceled(), true); // Due to auto cancellation
+```
+
+```c++
+  QFuture<void> future;
+  {
+
+    auto defer = deferred<void>();
+    future = defer.future();
+    defer.complete(QtConcurrent::run(worker));
+  }
+  QCOMPARE(future.isCanceled(), false);
+```
 
 **complete(T) / complete()**
 
