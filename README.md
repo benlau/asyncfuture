@@ -101,7 +101,9 @@ defer.cancel(timeout);
 return defer.future();
 ```
 
-**4. Advanced multi-threading programming model**
+**4. Chainable Future - Advanced multi-threading programming model**
+
+Futures can be chained into a sequence of process. And represented by a single future object.
 
 ```c++
 /* Start a thread and process its result in main thread */
@@ -271,6 +273,26 @@ In the above example, the result of `validating` is supposed to be true. However
 
 
 **Observable&lt;T&gt; subscribe(Completed onCompleted, Canceled onCanceled)**
+
+    `Observable<T>` subscribe(Completed onCompleted);
+    `Observable<T>` subscribe(Completed onCompleted, Canceled onCanceled);
+
+Register a onCompleted and/or onCanceled callback to the observed QFuture object. Unlike the context() function, the callbacks will be triggered as long as the current thread exists. The return value is an Observable<R> object where R is the return type of the onCompleted callback.
+
+```c++
+QFuture<bool> future = observe(button, &QAbstractButton::toggled).future();
+
+// Listen from the future without using QFutureWatcher<T>
+observe(future).subscribe([](bool toggled) {
+    // onCompleted. It is invoked when the observed future is finished successfully
+    qDebug() << "onCompleted";
+},[]() {
+    // onCanceled
+    qDebug() << "onCancel";
+});
+
+```
+
 
 Completed Callback Funcion
 ---------------
