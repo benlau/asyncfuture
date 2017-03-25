@@ -274,8 +274,8 @@ In the above example, the result of `validating` is supposed to be true. However
 
 **Observable&lt;T&gt; subscribe(Completed onCompleted, Canceled onCanceled)**
 
-    `Observable<T>` subscribe(Completed onCompleted);
-    `Observable<T>` subscribe(Completed onCompleted, Canceled onCanceled);
+    Observable<T> subscribe(Completed onCompleted);
+    Observable<T> subscribe(Completed onCompleted, Canceled onCanceled);
 
 Register a onCompleted and/or onCanceled callback to the observed QFuture object. Unlike the context() function, the callbacks will be triggered as long as the current thread exists. The return value is an Observable<R> object where R is the return type of the onCompleted callback.
 
@@ -374,15 +374,19 @@ But there has an exception if you have even called Deferred.complete(`QFuture<T>
 
 **complete(T) / complete()**
 
+Complete this future object with the given arguments
+
 **complete(QFuture<T>)**
+
+This future object is deferred to complete/cancel. It will adopt the state from the input future. If the input future is completed, then it will be completed too. That is same for cancel.
 
 **cancel()**
 
+Cancel the future object
+
 **cancel(QFuture<ANY>)**
 
-
-
-
+This future object is deferred to cancel according to the input future. Once it is completed, this future will be cancelled. However, if the input future is cancelled. Then this future object will just ignore it. Unless it fulfils the auto-cancellation rule.
 
 
 
