@@ -110,7 +110,7 @@ Futures can be chained into a sequence of process. And represented by a single f
 
 QFuture<QImage> reading = QtConcurrent::run(readImage, QString("image.jpg"));
 
-QFuture<bool> validating = observe(reading).context(contextObject, validator).future();
+QFuture<bool> validating = observe(reading).subscribe(validator).future();
 
     // Read image by a thread, when it is ready, run the validator function
     // in the thread of the contextObject(e.g main thread)
@@ -120,7 +120,7 @@ QFuture<bool> validating = observe(reading).context(contextObject, validator).fu
 
 QFuture<int> f1 = QtConcurrent::mapped(input, mapFunc);
 
-QFuture<int> f2 = observe(f1).context(contextObject, [=](QFuture<int> future) {
+QFuture<int> f2 = observe(f1).subscribe([=](QFuture<int> future) {
     // You may use QFuture as the input argument of your callback function
     // It will be set to the observed future object. So that you may obtain
     // the value of results()
@@ -188,12 +188,6 @@ observe(future).subscribe([](bool toggled) {
     // onCanceled
     qDebug() << "onCancel";
 });
-
-observe(future).context(context, [](bool toggled) {
-    // simialr to subscribe, but this function will not be invoked if context object
-    // is destroyed.
-});
-
 ```
 
 
@@ -249,29 +243,6 @@ Obsevable<T> is a chainable utility for observing a QFuture object. It is create
 
 Obtain the QFuture object to represent the result.
 
-**Observable&lt;R&gt; context(QObject&#42; contextObject, Completed onCompleted)**
-
-Add a callback function that listens to the finished signal from the observing QFuture object. The callback won't be triggered if the future is cancelled.
-
-The callback is invoked in the thread of the context object, In case the context object is destroyed before the finished signal, the callback function won't be triggered and the returned Observable object will cancel its future.
-
-The return value is an `Observable<R>` object where R is the return type of the onCompleted callback.
-
-```c++
-
-auto validator = [](QImage input) -> bool {
-   /* A dummy function. Return true for any case. */
-   return true;
-};
-
-QFuture<QImage> reading = QtConcurrent::run(readImage, QString("image.jpg"));
-
-QFuture<bool> validating = observe(reading).context(contextObject, validator).future();
-```
-
-In the above example, the result of `validating` is supposed to be true. However, if the `contextObject` is destroyed before `reading` future finished, it will be cancelled and the result will become undefined.
-
-
 **Observable&lt;T&gt; subscribe(Completed onCompleted, Canceled onCanceled)**
 
     Observable<T> subscribe(Completed onCompleted);
@@ -293,6 +264,27 @@ observe(future).subscribe([](bool toggled) {
 
 ```
 
+**Observable&lt;R&gt; context(QObject&#42; contextObject, Completed onCompleted)**
+
+Add a callback function that listens to the finished signal from the observing QFuture object. The callback won't be triggered if the future is cancelled.
+
+The callback is invoked in the thread of the context object, In case the context object is destroyed before the finished signal, the callback function won't be triggered and the returned Observable object will cancel its future.
+
+The return value is an `Observable<R>` object where R is the return type of the onCompleted callback.
+
+```c++
+
+auto validator = [](QImage input) -> bool {
+   /* A dummy function. Return true for any case. */
+   return true;
+};
+
+QFuture<QImage> reading = QtConcurrent::run(readImage, QString("image.jpg"));
+
+QFuture<bool> validating = observe(reading).context(contextObject, validator).future();
+```
+
+In the above example, the result of `validating` is supposed to be true. However, if the `contextObject` is destroyed before `reading` future finished, it will be cancelled and the result will become undefined.
 
 Completed Callback Funcion
 ---------------
