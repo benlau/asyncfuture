@@ -428,7 +428,7 @@ struct function_traits<ReturnType(ClassType::*)(Args...) const>
     };
 
     // If the result_type is a QFuture<T>, the type will be T. Otherwise, it is void
-    typedef typename future_traits<result_type>::arg_type future_type;
+    typedef typename future_traits<result_type>::arg_type future_arg_type;
 
     template <size_t i>
     struct arg
@@ -484,7 +484,7 @@ void>::type
 voidInvoke(Functor functor, QFuture<T> future) {
     Q_UNUSED(future);
     functor();
-    /* Toubleshooting:
+    /* Toubleshooting Tips:
      * 1) Are you observing a QFuture<void> but require an input argument in your callback function?
      */
 }
@@ -506,8 +506,15 @@ run(Functor functor, QFuture<T> future) {
 }
 
 /// Create a DeferredFuture will execute the callback functions when observed future finished
+/** DeferredType - The template type of the DeferredType
+ *  RetType - The return type of QFuture
+ *
+ * DeferredType and RetType can be different.
+ * e.g DeferredFuture<int> = Value<QFuture<int>>
+ */
 template <typename DeferredType, typename RetType, typename T, typename Completed, typename Canceled>
 static DeferredFuture<DeferredType>* execute(QFuture<T> future, QObject* contextObject, Completed onCompleted, Canceled onCanceled) {
+
     DeferredFuture<DeferredType>* defer = new DeferredFuture<DeferredType>();
     defer->autoDelete = true;
     watch(future,
@@ -551,6 +558,7 @@ public:
     Observable<typename Private::function_traits<Functor>::result_type>
     >::type
     context(QObject* contextObject, Functor functor)  {
+        /* functor return non-QFuture type */
         return _context<typename Private::function_traits<Functor>::result_type,
                        typename Private::function_traits<Functor>::result_type
                 >(contextObject, functor);
@@ -561,7 +569,7 @@ public:
     Observable<typename Private::future_traits<typename Private::function_traits<Functor>::result_type>::arg_type>
     >::type
     context(QObject* contextObject, Functor functor)  {
-        /* For functor return QFuture */
+        /* functor returns a QFuture */
         return _context<typename Private::future_traits<typename Private::function_traits<Functor>::result_type>::arg_type,
                        typename Private::function_traits<Functor>::result_type
                 >(contextObject, functor);
@@ -592,10 +600,11 @@ public:
 
     template <typename Completed, typename Canceled>
     typename std::enable_if<Private::future_traits<typename Private::function_traits<Completed>::result_type>::is_future,
-    Observable<typename Private::function_traits<Completed>::result_type>
+    Observable<typename Private::function_traits<Completed>::future_arg_type>
     >::type
     subscribe(Completed onCompleted,
               Canceled onCanceled) {
+        /* onCompleted returns a QFuture */
         return _subscribe<typename Private::future_traits<typename Private::function_traits<Completed>::result_type>::arg_type,
                          typename Private::function_traits<Completed>::result_type
                 >(onCompleted, onCanceled);
@@ -603,9 +612,11 @@ public:
 
     template <typename Completed>
     typename std::enable_if<Private::future_traits<typename Private::function_traits<Completed>::result_type>::is_future,
-    Observable<typename Private::function_traits<Completed>::result_type>
+    Observable<typename Private::function_traits<Completed>::future_arg_type>
     >::type
     subscribe(Completed onCompleted) {
+        /* onCompleted returns a QFuture */
+
         return _subscribe<typename Private::future_traits<typename Private::function_traits<Completed>::result_type>::arg_type,
                          typename Private::function_traits<Completed>::result_type
                 >(onCompleted, [](){});

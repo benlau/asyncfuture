@@ -79,22 +79,22 @@ void AsyncFutureTests::test_function_traits()
     };
 
     QVERIFY(Private::function_traits<typeof func1>::result_type_is_future == 0);
-    QVERIFY((std::is_same<Private::function_traits<typeof func1>::future_type, void>::value) == 1);
+    QVERIFY((std::is_same<Private::function_traits<typeof func1>::future_arg_type, void>::value) == 1);
 
     auto func2 = []() -> QFuture<int> {
         return QFuture<int>();
     };
 
     QVERIFY(Private::function_traits<typeof func2>::result_type_is_future == true);
-    QVERIFY((std::is_same<Private::function_traits<typeof func2>::future_type, void>::value) == 0);
-    QVERIFY((std::is_same<Private::function_traits<typeof func2>::future_type, int>::value) == 1);
+    QVERIFY((std::is_same<Private::function_traits<typeof func2>::future_arg_type, void>::value) == 0);
+    QVERIFY((std::is_same<Private::function_traits<typeof func2>::future_arg_type, int>::value) == 1);
 
     auto func3 = []() -> QFuture<void> {
         return QFuture<void>();
     };
 
     QVERIFY(Private::function_traits<typeof func3>::result_type_is_future == true);
-    QVERIFY((std::is_same<Private::function_traits<typeof func3>::future_type, void>::value) == 1);
+    QVERIFY((std::is_same<Private::function_traits<typeof func3>::future_arg_type, void>::value) == 1);
 }
 
 void AsyncFutureTests::test_private_DeferredFuture()
@@ -466,6 +466,34 @@ void AsyncFutureTests::test_Observable_subscribe()
     }
 }
 
+void AsyncFutureTests::test_Observable_subscribe_return_future()
+{
+    auto bWorker = [=]() -> bool {
+        Automator::wait(50);
+        return true;
+    };
+
+    auto futureCleanupBool = [&](bool value) {
+        Q_UNUSED(value)
+        auto internalWorker = [=]() -> int {
+            Automator::wait(50);
+
+            return 10;
+        };
+        QFuture<int> future = QtConcurrent::run(internalWorker);
+        return future;
+    };
+
+    auto observable = observe(QtConcurrent::run(bWorker)).subscribe(futureCleanupBool);
+
+    waitUntil(observable.future(), 1000);
+    QCOMPARE(observable.future().result(), 10);
+
+    observable = observe(QtConcurrent::run(bWorker)).subscribe(futureCleanupBool,[]() {});
+    QCOMPARE(observable.future().isFinished(), false);
+    waitUntil(observable.future(), 1000);
+    QCOMPARE(observable.future().result(), 10);
+}
 
 
 void AsyncFutureTests::test_Defer()
