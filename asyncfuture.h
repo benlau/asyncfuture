@@ -55,19 +55,38 @@ template <typename T, typename Finished, typename Canceled>
 void watch(QFuture<T> future, QObject* contextObject, Finished finished, Canceled canceled) {
     QFutureWatcher<T> *watcher = new QFutureWatcher<T>(contextObject);
 
-    QObject::connect(watcher, &QFutureWatcher<T>::finished,
-                     contextObject, [=]() {
-        watcher->disconnect();
-        watcher->deleteLater();
-        finished();
-    });
+    if (contextObject) {
 
-    QObject::connect(watcher, &QFutureWatcher<T>::canceled,
-                     contextObject, [=]() {
-        watcher->disconnect();
-        watcher->deleteLater();
-        canceled();
-    });
+        QObject::connect(watcher, &QFutureWatcher<T>::finished,
+                         contextObject, [=]() {
+            watcher->disconnect();
+            watcher->deleteLater();
+            finished();
+        });
+
+        QObject::connect(watcher, &QFutureWatcher<T>::canceled,
+                         contextObject, [=]() {
+            watcher->disconnect();
+            watcher->deleteLater();
+            canceled();
+        });
+
+    } else {
+
+        QObject::connect(watcher, &QFutureWatcher<T>::finished,
+                         [=]() {
+            watcher->disconnect();
+            watcher->deleteLater();
+            finished();
+        });
+
+        QObject::connect(watcher, &QFutureWatcher<T>::canceled,
+                         [=]() {
+            watcher->disconnect();
+            watcher->deleteLater();
+            canceled();
+        });
+    }
 
     watcher->setFuture(future);
 }
@@ -526,7 +545,9 @@ static DeferredFuture<DeferredType>* execute(QFuture<T> future, QObject* context
         defer->cancel();
     });
 
-    defer->cancel(contextObject, &QObject::destroyed);
+    if (contextObject) {
+        defer->cancel(contextObject, &QObject::destroyed);
+    }
 
     return defer;
 }
@@ -641,7 +662,7 @@ private:
     Observable<ObservableType> _subscribe(Completed onCompleted, Canceled onCanceled) {
 
         auto defer = Private::execute<ObservableType, RetType>(m_future,
-                                                               QThread::currentThread(),
+                                                               0,
                                                                onCompleted,
                                                                onCanceled);
 

@@ -47,6 +47,8 @@ private slots:
 
     void test_Observable_subscribe();
 
+    void test_Observable_subscribe_in_thread();
+
     void test_Observable_subscribe_return_future();
 
     void test_Defer();

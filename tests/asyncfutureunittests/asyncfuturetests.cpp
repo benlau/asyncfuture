@@ -299,7 +299,6 @@ void AsyncFutureTests::test_Observable_context_destroyed()
 void AsyncFutureTests::test_Observable_context_in_thread()
 {
     auto worker = [&]() -> void {
-
         QObject context;
 
         QThread* workerThread = QThread::currentThread();
@@ -464,6 +463,40 @@ void AsyncFutureTests::test_Observable_subscribe()
         QCOMPARE(result.isFinished(), true);
         QCOMPARE(result.isCanceled(), true);
     }
+}
+
+void AsyncFutureTests::test_Observable_subscribe_in_thread()
+{
+    QThreadPool pool;
+    pool.setMaxThreadCount(4);
+
+    auto worker = [&]() -> void {
+        QThread* workerThread = QThread::currentThread();
+
+        QVERIFY(workerThread != QCoreApplication::instance()->thread());
+
+        auto worker = [=]() -> void {
+            QVERIFY(QThread::currentThread() != workerThread);
+            Automator::wait(50);
+        };
+
+        auto cleanup = [&]() -> void {
+            QVERIFY(QThread::currentThread() == workerThread);
+            Automator::wait(50);
+        };
+
+        auto f1 = QtConcurrent::run(&pool, worker);
+        auto f2 = observe(f1).subscribe(cleanup).future();
+
+        QVERIFY(waitUntil([&](){
+            return f2.isFinished();
+        }, 1000));
+    };
+
+    QFuture<void> future = QtConcurrent::run(&pool, worker);
+
+    future.waitForFinished();
+
 }
 
 void AsyncFutureTests::test_Observable_subscribe_return_future()
