@@ -73,6 +73,30 @@ void AsyncFutureTests::test_QFuture_isResultReadyAt()
 
 }
 
+void AsyncFutureTests::test_function_traits()
+{
+    auto func1 = []() {
+    };
+
+    QVERIFY(Private::function_traits<typeof func1>::result_type_is_future == 0);
+    QVERIFY((std::is_same<Private::function_traits<typeof func1>::future_type, void>::value) == 1);
+
+    auto func2 = []() -> QFuture<int> {
+        return QFuture<int>();
+    };
+
+    QVERIFY(Private::function_traits<typeof func2>::result_type_is_future == true);
+    QVERIFY((std::is_same<Private::function_traits<typeof func2>::future_type, void>::value) == 0);
+    QVERIFY((std::is_same<Private::function_traits<typeof func2>::future_type, int>::value) == 1);
+
+    auto func3 = []() -> QFuture<void> {
+        return QFuture<void>();
+    };
+
+    QVERIFY(Private::function_traits<typeof func3>::result_type_is_future == true);
+    QVERIFY((std::is_same<Private::function_traits<typeof func3>::future_type, void>::value) == 1);
+}
+
 void AsyncFutureTests::test_private_DeferredFuture()
 {
     Private::DeferredFuture<void> defer;

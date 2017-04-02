@@ -379,6 +379,34 @@ public:
     }
 };
 
+// Determine is the input type a QFuture
+template <typename T>
+struct future_traits {
+    enum {
+        is_future = 0
+    };
+
+    typedef void arg_type;
+};
+
+template <template <typename> class C, typename T>
+struct future_traits<C <T> >
+{
+    enum {
+        is_future = 0
+    };
+
+    typedef void arg_type;
+};
+
+template <typename T>
+struct future_traits<QFuture<T> >{
+    enum {
+        is_future = 1
+    };
+    typedef T arg_type;
+};
+
 // function_traits: Source: http://stackoverflow.com/questions/7943525/is-it-possible-to-figure-out-the-parameter-type-and-return-type-of-a-lambda
 
 template <typename T>
@@ -394,6 +422,13 @@ struct function_traits<ReturnType(ClassType::*)(Args...) const>
     // arity is the number of arguments.
 
     typedef ReturnType result_type;
+
+    enum {
+        result_type_is_future = future_traits<result_type>::is_future
+    };
+
+    // If the result_type is a QFuture<T>, the type will be T. Otherwise, it is void
+    typedef typename future_traits<result_type>::arg_type future_type;
 
     template <size_t i>
     struct arg
@@ -416,31 +451,6 @@ struct signal_traits<R (C::*)()> {
 template <typename R, typename C, typename ARG1>
 struct signal_traits<R (C::*)(ARG1)> {
     typedef ARG1 result_type;
-};
-
-
-template <typename T>
-struct future_traits {
-    enum {
-        is_future = 0
-    };
-};
-
-
-template <template <typename> class C, typename T>
-struct future_traits<C <T> >
-{
-    enum {
-        is_future = 0
-    };
-};
-
-template <typename T>
-struct future_traits<QFuture<T> >{
-    enum {
-        is_future = 1
-    };
-    typedef T arg_type;
 };
 
 template <typename Functor, typename T>
