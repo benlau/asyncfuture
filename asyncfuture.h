@@ -53,7 +53,7 @@ public:
 
 template <typename T, typename Finished, typename Canceled>
 void watch(QFuture<T> future, QObject* contextObject, Finished finished, Canceled canceled) {
-    QFutureWatcher<T> *watcher = new QFutureWatcher<T>(contextObject);
+    QFutureWatcher<T> *watcher = new QFutureWatcher<T>();
 
     if (contextObject) {
 

@@ -37,6 +37,7 @@ private slots:
     void test_Observable_context();
     void test_Observable_context_destroyed();
     void test_Observable_context_in_thread();
+    void test_Observable_context_in_different_thread();
 
     void test_Observable_context_return_future();
 

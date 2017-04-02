@@ -331,6 +331,42 @@ void AsyncFutureTests::test_Observable_context_in_thread()
     future.waitForFinished();
 }
 
+void AsyncFutureTests::test_Observable_context_in_different_thread()
+{
+    QObject context;
+
+    auto worker = [&]() -> void {
+
+        QThread* workerThread = QThread::currentThread();
+
+        QVERIFY(workerThread != QCoreApplication::instance()->thread());
+
+        auto worker = [=]() -> void {
+            QVERIFY(QThread::currentThread() != workerThread);
+
+            Automator::wait(50);
+        };
+
+        auto cleanup = [&]() -> void {
+            QVERIFY(QThread::currentThread() != workerThread);
+            Automator::wait(50);
+        };
+
+        auto f1 = QtConcurrent::run(worker);
+        auto f2 = observe(f1).context(&context, cleanup).future();
+
+        QVERIFY(waitUntil([&](){
+            return f2.isFinished();
+        }, 1000));
+    };
+
+    QThreadPool pool;
+    pool.setMaxThreadCount(1);
+    QFuture<void> future = QtConcurrent::run(&pool, worker);
+
+    waitUntil(future);
+}
+
 void AsyncFutureTests::test_Observable_context_return_future()
 {
     auto bWorker = [=]() -> bool {
