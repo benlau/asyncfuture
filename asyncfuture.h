@@ -71,6 +71,10 @@ void watch(QFuture<T> future, QObject* contextObject, Finished finished, Cancele
             canceled();
         });
 
+        // Don't set parent as the context object may live in different thread
+        QObject::connect(contextObject, &QObject::destroyed,
+                         watcher, &QObject::deleteLater);
+
     } else {
 
         QObject::connect(watcher, &QFutureWatcher<T>::finished,
