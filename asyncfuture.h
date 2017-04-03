@@ -59,13 +59,26 @@ void runInMainThread(F func) {
                      QCoreApplication::instance(), std::move(func), Qt::QueuedConnection);
 }
 
+/*
+ * @param owner If the object is destroyed, it should destroy the watcher
+ * @param contextObject Determine the receiver callback
+ */
+
 template <typename T, typename Finished, typename Canceled>
 void watch(QFuture<T> future,
+           QObject* owner,
            QObject* contextObject,
            Finished finished,
            Canceled canceled) {
 
+
     QFutureWatcher<T> *watcher = new QFutureWatcher<T>();
+
+    if (owner) {
+        // Don't set parent as the context object as it may live in different thread
+        QObject::connect(owner, &QObject::destroyed,
+                         watcher, &QObject::deleteLater);
+    }
 
     if (contextObject) {
 
@@ -82,10 +95,6 @@ void watch(QFuture<T> future,
             watcher->deleteLater();
             canceled();
         });
-
-        // Don't set parent as the context object as it may live in different thread
-        QObject::connect(contextObject, &QObject::destroyed,
-                         watcher, &QObject::deleteLater);
 
     } else {
 
@@ -104,13 +113,13 @@ void watch(QFuture<T> future,
         });
     }
 
-    watcher->setFuture(future);
-
     if ((QThread::currentThread() != QCoreApplication::instance()->thread()) &&
          (contextObject == 0 || QThread::currentThread() != contextObject->thread())) {
         // Move watcher to main thread
         watcher->moveToThread(QCoreApplication::instance()->thread());
     }
+
+    watcher->setFuture(future);
 }
 
 template <typename T>
@@ -177,6 +186,7 @@ public:
         };
 
         watch(future,
+              this,
               0,
               onFinished,
               onCanceled);
@@ -218,6 +228,7 @@ public:
         };
 
         watch(future,
+              this,
               0,
               onFinished,
               onCanceled);
@@ -297,7 +308,7 @@ public:
         int index = count++;
         incRefCount();
 
-        Private::watch(future, this,
+        Private::watch(future, this, 0,
                        [=]() {
             completeFutureAt(index);
             decRefCount();
@@ -559,6 +570,7 @@ static DeferredFuture<DeferredType>* execute(QFuture<T> future, QObject* context
     DeferredFuture<DeferredType>* defer = new DeferredFuture<DeferredType>();
     defer->autoDelete = true;
     watch(future,
+          contextObject,
           contextObject,[=]() {
         Value<RetType> value = run(onCompleted, future);
         defer->complete(value);
