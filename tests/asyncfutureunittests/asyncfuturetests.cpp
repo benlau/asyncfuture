@@ -591,7 +591,7 @@ void AsyncFutureTests::test_Observable_subscribe_in_thread()
         };
 
         auto cleanup = [&]() -> void {
-            QVERIFY(QThread::currentThread() == workerThread);
+            QVERIFY(QThread::currentThread() == QCoreApplication::instance()->thread());
             Automator::wait(50);
         };
 
@@ -605,8 +605,7 @@ void AsyncFutureTests::test_Observable_subscribe_in_thread()
 
     QFuture<void> future = QtConcurrent::run(&pool, worker);
 
-    future.waitForFinished();
-
+    QVERIFY(waitUntil(future , 1000));
 }
 
 void AsyncFutureTests::test_Observable_subscribe_return_future()

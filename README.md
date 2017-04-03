@@ -246,6 +246,8 @@ Obtain the QFuture object to represent the result.
 
 Register a onCompleted and/or onCanceled callback to the observed QFuture object. Unlike the context() function, the callbacks will be triggered as long as the current thread exists. The return value is an Observable<R> object where R is the return type of the onCompleted callback.
 
+Remarks: After v0.3.2, the callback will be executed in main thread.
+
 ```c++
 QFuture<bool> future = observe(button, &QAbstractButton::toggled).future();
 
@@ -261,6 +263,8 @@ observe(future).subscribe([](bool toggled) {
 ```
 
 **Observable&lt;R&gt; context(QObject&#42; contextObject, Completed onCompleted)**
+
+*This API is for advanced users only*
 
 Add a callback function that listens to the finished signal from the observing QFuture object. The callback won't be triggered if the future is cancelled.
 

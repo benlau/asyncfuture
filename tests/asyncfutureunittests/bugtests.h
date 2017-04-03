@@ -15,6 +15,8 @@ public slots:
 
 private slots:
     void test_nested_context();
+
+    void test_nested_subscribe_in_thread();
 };
 
 #endif // BUGTESTS_H

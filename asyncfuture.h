@@ -4,6 +4,7 @@
 #include <QPointer>
 #include <QThread>
 #include <QFutureWatcher>
+#include <QCoreApplication>
 #include <functional>
 
 namespace AsyncFuture {
@@ -51,8 +52,19 @@ public:
     }
 };
 
+template <typename F>
+void runInMainThread(F func) {
+    QObject tmp;
+    QObject::connect(&tmp, &QObject::destroyed,
+                     QCoreApplication::instance(), std::move(func), Qt::QueuedConnection);
+}
+
 template <typename T, typename Finished, typename Canceled>
-void watch(QFuture<T> future, QObject* contextObject, Finished finished, Canceled canceled) {
+void watch(QFuture<T> future,
+           QObject* contextObject,
+           Finished finished,
+           Canceled canceled) {
+
     QFutureWatcher<T> *watcher = new QFutureWatcher<T>();
 
     if (contextObject) {
@@ -93,6 +105,12 @@ void watch(QFuture<T> future, QObject* contextObject, Finished finished, Cancele
     }
 
     watcher->setFuture(future);
+
+    if ((QThread::currentThread() != QCoreApplication::instance()->thread()) &&
+         (contextObject == 0 || QThread::currentThread() != contextObject->thread())) {
+        // Move watcher to main thread
+        watcher->moveToThread(QCoreApplication::instance()->thread());
+    }
 }
 
 template <typename T>
@@ -159,7 +177,7 @@ public:
         };
 
         watch(future,
-              this,
+              0,
               onFinished,
               onCanceled);
     }
@@ -200,7 +218,7 @@ public:
         };
 
         watch(future,
-              this,
+              0,
               onFinished,
               onCanceled);
     }

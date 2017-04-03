@@ -64,3 +64,23 @@ void BugTests::test_nested_context()
 
     QVERIFY(waitUntil(future, 1000));
 }
+
+void BugTests::test_nested_subscribe_in_thread()
+{
+    bool called = false;
+
+    auto worker = [&]() {
+        observe(Test::timeout(50)).subscribe([]() {
+            return Test::timeout(50);
+        }).subscribe([&]() {
+            called = true;
+        });
+    };
+
+    QtConcurrent::run(worker);
+
+    QVERIFY(waitUntil([&]() {
+        return called;
+    }, 1000));
+
+}
