@@ -28,6 +28,8 @@ private slots:
 
     void test_QFuture_isResultReadyAt();
 
+    void test_QFutureWatcher_in_thread();
+
     void test_function_traits();
 
     void test_private_DeferredFuture();

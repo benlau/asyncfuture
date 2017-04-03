@@ -73,6 +73,80 @@ void AsyncFutureTests::test_QFuture_isResultReadyAt()
 
 }
 
+void AsyncFutureTests::test_QFutureWatcher_in_thread()
+{
+    // It prove to use QFutureWatcher in a thread do not works if QEventLoop is not used.
+
+    {
+        bool called = false;
+        QFutureWatcher<void>* watcher = 0;
+        QFuture<void> future;
+
+        auto worker = [&]() {
+             watcher = new QFutureWatcher<void>();
+             future = Test::timeout(50);
+             QObject::connect(watcher, &QFutureWatcher<void>::finished, [&]() {
+                 called = true;
+             });
+             watcher->setFuture(future);
+        };
+
+        auto f = QtConcurrent::run(worker);
+
+        QVERIFY(waitUntil(f,1000));
+
+        waitUntil([&]() {
+            return called;
+        }, 1000);
+
+        QVERIFY(future.isFinished());
+        QVERIFY(called == false); // It is not called as the thread is terminated
+        delete watcher;
+    }
+
+    {
+        // Work around solution: Create QFutureWatcher on main thread.
+
+        bool called = false;
+        QFutureWatcher<void>* watcher = 0;
+        QFuture<void> future;
+
+        auto worker = [&]() {
+
+             future = QFuture<void>();
+
+             {
+                 QObject obj;
+                 QObject::connect(&obj, &QObject::destroyed,
+                                  QCoreApplication::instance(),
+                                  [&]() {
+                     watcher = new QFutureWatcher<void>();
+                     QObject::connect(watcher, &QFutureWatcher<void>::finished, [&]() {
+                         called = true;
+                     });
+                     watcher->setFuture(future);
+                 });
+             }
+        };
+
+        auto f = QtConcurrent::run(worker);
+
+        QVERIFY(waitUntil(f,1000));
+
+        QVERIFY(waitUntil([&]() {
+            return watcher != 0;
+        }, 1000));
+
+        waitUntil([&]() {
+            return called;
+        }, 1000);
+
+        QVERIFY(future.isFinished());
+        QVERIFY(called == true);
+        delete watcher;
+    }
+}
+
 void AsyncFutureTests::test_function_traits()
 {
     auto func1 = []() {

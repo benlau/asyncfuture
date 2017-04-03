@@ -4,6 +4,7 @@
 #include <functional>
 #include <Automator>
 #include <QFuture>
+#include <QtConcurrent>
 #include <QTime>
 
 namespace Test {
@@ -64,6 +65,14 @@ namespace Test {
            return future.isFinished();
         }, timeout);
         tick();
+    }
+
+    inline
+    QFuture<void> timeout(int duration) {
+        auto worker = [=]() {
+            Automator::wait(duration);
+        };
+        return QtConcurrent::run(worker);
     }
 
 }
