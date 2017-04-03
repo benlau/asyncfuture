@@ -52,9 +52,10 @@ private slots:
 
     void test_Observable_subscribe_return_future();
 
-    void test_Defer();
-    void test_Defer_complete_future();
-    void test_Defer_cancel_future();
+    void test_Deferred();
+    void test_Deferred_complete_future();
+    void test_Deferred_cancel_future();
+    void test_Deferred_across_thread();
 
 
     void test_Combinator();

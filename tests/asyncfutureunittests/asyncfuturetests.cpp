@@ -565,7 +565,7 @@ void AsyncFutureTests::test_Observable_subscribe_return_future()
 }
 
 
-void AsyncFutureTests::test_Defer()
+void AsyncFutureTests::test_Deferred()
 {
     {
         // defer<bool>::complete
@@ -666,7 +666,7 @@ void AsyncFutureTests::test_Defer()
 
 }
 
-void AsyncFutureTests::test_Defer_complete_future()
+void AsyncFutureTests::test_Deferred_complete_future()
 {
     auto timeout = []() {
         Automator::wait(50);
@@ -721,7 +721,7 @@ void AsyncFutureTests::test_Defer_complete_future()
     }
 }
 
-void AsyncFutureTests::test_Defer_cancel_future()
+void AsyncFutureTests::test_Deferred_cancel_future()
 {
 
     auto timeout = []() {
@@ -786,6 +786,22 @@ void AsyncFutureTests::test_Defer_cancel_future()
         QCOMPARE(future.isFinished(), true);
         QCOMPARE(future.isCanceled(), false);
     }
+}
+
+void AsyncFutureTests::test_Deferred_across_thread()
+{
+    auto defer = deferred<int>();
+
+    auto worker = [=]() {
+        Automator::wait(50);
+        auto d = defer;
+        d.complete(99);
+    };
+
+    QtConcurrent::run(worker);
+
+    Test::waitUntil(defer.future());
+    QCOMPARE(defer.future().result(), 99);
 }
 
 void AsyncFutureTests::test_Combinator()
