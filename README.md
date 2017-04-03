@@ -19,8 +19,7 @@ using namespace AsyncFuture;
 
 // Convert a signal from QObject into a QFuture object
 
-QFuture<void> future = observe(timer,
-                               &QTimer::timeout).future();
+QFuture<void> future = observe(timer, &QTimer::timeout).future();
 
 /* Listen from the future without using QFutureWatcher<T>*/
 observe(future).subscribe([]() {
@@ -53,13 +52,13 @@ QFuture<QImage> result = (combine() << f1 << f2).subscribe([=](){
 
 **3. Use QFuture like a Promise object**
 
-Create a QFuture and Complete / cancel it by yourself.
+Create a QFuture then complete / cancel it by yourself.
 
 ```c++
 // Complete / cancel a future on your own choice
 auto d = deferred<bool>();
 
-observe(d.future()).subscribe([]() {
+d.subscribe([]() {
     qDebug() << "onCompleted";
 }, []() {
     qDebug() << "onCancel";
@@ -152,9 +151,6 @@ or
 
 API
 ===
-
-Still under construction
-
 
 AsyncFuture::observe(QObject* object, PointerToMemberFunc signal)
 -------------------
