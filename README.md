@@ -107,14 +107,30 @@ Futures can be chained into a sequence of process. And represented by a single f
 ```c++
 /* Start a thread and process its result in main thread */
 
-QFuture<QImage> reading = QtConcurrent::run(readImage, QString("image.jpg"));
+QFuture<QImage> readImage(const QString& file) {
 
-QFuture<bool> validating = observe(reading).subscribe(validator).future();
+    auto readImageWorker = [=]() {
+        QImage image;
+        image.read(file);
+        return image;
+    };
+    
+    auto updateCache = [&](QImage image) {
+        m_cache[file] = image;
+        return image;
+    };
 
-    // Read image by a thread, when it is ready, run the validator function
-    // in the thread of the contextObject(e.g main thread)
-    // And it return another QFuture to represent the final result.
+    QFuture<QImage> reading = QtConcurrent::run(readImageWorker));
+    return observe(reading).subscribe(updateCache).future();   
+}
 
+// Read image by a thread, when it is ready, run the updateCache function
+// in the main thread.
+// And it return another QFuture to represent the final result.
+
+```
+
+```c++
 /* Start a thread and process its result in main thread, then start another thread. */
 
 QFuture<int> f1 = QtConcurrent::mapped(input, mapFunc);
