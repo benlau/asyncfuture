@@ -233,7 +233,7 @@ The deferred() function return a Deferred object that allows you to set QFuture 
 ```c++
 auto d = deferred<bool>();
 
-observe(d.future()).subscribe([]() {
+d.subscribe([]() {
     qDebug() << "onCompleted";
 }, []() {
     qDebug() << "onCancel";
