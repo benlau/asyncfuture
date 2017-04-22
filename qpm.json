@@ -1,6 +1,6 @@
 {
   "name": "async.future.pri",
-  "description": "",
+  "description": "Use QFuture like a Promise object",
   "author": {
     "name": "Ben Lau",
     "email": "xbenlau@gmail.com"
