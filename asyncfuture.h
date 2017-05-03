@@ -122,6 +122,14 @@ void watch(QFuture<T> future,
     watcher->setFuture(future);
 }
 
+/* DeferredFuture implements a QFutureInterface that could complete/cancel a QFuture.
+ *
+ * 1) It is private class that won't export to public
+ *
+ * 2) Its member function do not use <T> to avoid to use template specialization to handle <void>. Type checking should be done by user classes (e.g Deferred)
+ *
+ */
+
 template <typename T>
 class DeferredFuture : public QObject, public QFutureInterface<T>{
 public:
@@ -136,6 +144,7 @@ public:
         cancel();
     }
 
+    // complete<void>()
     void complete() {
         if (resolved) {
             return;
@@ -154,6 +163,22 @@ public:
             return;
         }
         resolved = true;
+        reportResult(value);
+        QFutureInterface<T>::reportFinished();
+
+        if (autoDelete) {
+            deleteLater();
+        }
+    }
+
+    template <typename R>
+    void complete(QList<R>& value) {
+        if (resolved) {
+            return;
+        }
+
+        resolved = true;
+
         reportResult(value);
         QFutureInterface<T>::reportFinished();
 
@@ -283,6 +308,13 @@ protected:
     template <typename R>
     void reportResult(R& value) {
         QFutureInterface<T>::reportResult(value);
+    }
+
+    template <typename R>
+    void reportResult(QList<R>& value) {
+        for (int i = 0 ; i < value.size();i++) {
+            QFutureInterface<T>::reportResult(value[i], i);
+        }
     }
 
     template <typename R>
@@ -723,6 +755,10 @@ public:
         defer->complete(value);
     }
 
+    void complete(QList<T> value) {
+        defer->complete(value);
+    }
+
     template <typename ANY>
     void cancel(QFuture<ANY> future) {
         defer->cancel(future);
@@ -781,6 +817,7 @@ public:
         combinedFuture = Private::CombinedFuture::create(mode == AllSettled);
         m_future = combinedFuture->future();
     }
+
     inline ~Combinator() {
         if (!combinedFuture.isNull() && combinedFuture->count == 0) {
             // No future added

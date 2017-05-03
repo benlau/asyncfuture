@@ -794,6 +794,22 @@ void AsyncFutureTests::test_Deferred_complete_future()
     }
 }
 
+void AsyncFutureTests::test_Deferred_complete_list()
+{
+    auto defer = deferred<int>();
+
+    QList<int> expected;
+
+    expected << 1 << 2 << 3;
+
+    defer.complete(expected);
+
+    auto future = defer.future();
+    QVERIFY(future.isFinished());
+
+    QVERIFY(future.results() == expected);
+}
+
 void AsyncFutureTests::test_Deferred_cancel_future()
 {
 
