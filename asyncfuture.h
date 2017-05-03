@@ -358,13 +358,10 @@ public:
     static QSharedPointer<CombinedFuture> create(bool settleAllMode) {
 
         auto deleter = [](CombinedFuture *object) {
-            if (object->resolved) {
-                // If that is already resolved, it is not necessary to keep it in memory
-                object->deleteLater();
-            } else {
-                object->autoDelete = true;
-                object->decRefCount();
-            }
+            // Regardless of the no. of instance of QSharedPointer<CombinedFuture>,
+            // it only increase the reference by one.
+            object->autoDelete = true;
+            object->decRefCount();
         };
 
         QSharedPointer<CombinedFuture> ptr(new CombinedFuture(settleAllMode), deleter);
