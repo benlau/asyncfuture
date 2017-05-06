@@ -384,6 +384,10 @@ But there has an exception if you have even called Deferred.complete(`QFuture<T>
 
 Complete this future object with the given arguments
 
+**complete(QList<T>)**
+
+Complete the future object with a list of result. User may obtain all the value by QFuture::results().
+
 **complete(QFuture<T>)**
 
 This future object is deferred to complete/cancel. It will adopt the state from the input future. If the input future is completed, then it will be completed too. That is same for cancel.
