@@ -23,5 +23,7 @@ private slots:
     void example_promise_like_timeout();
 
     void example_fileactor();
+
+    void example_qtconcurrent_mapped();
 };
 

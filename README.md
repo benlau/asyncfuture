@@ -401,8 +401,12 @@ Cancel the future object
 This future object is deferred to cancel according to the input future. Once it is completed, this future will be cancelled. However, if the input future is cancelled. Then this future object will just ignore it. Unless it fulfils the auto-cancellation rule.
 
 
+Examples
+========
 
+There has few examples of different use-cases in this source file:
 
+[asyncfuture/example.cpp at master · benlau/asyncfuture](https://github.com/benlau/asyncfuture/blob/master/tests/asyncfutureunittests/example.cpp)
 
 
 

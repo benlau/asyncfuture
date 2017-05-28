@@ -323,3 +323,52 @@ void Example::example_fileactor()
 
 }
 
+template <typename T, typename Sequence, typename Functor>
+QFuture<T> mapped(Sequence input, Functor func){
+    auto defer = AsyncFuture::deferred<T>();
+
+    QList<QFuture<T>> futures;
+    auto combinator = AsyncFuture::combine();
+
+    for (int i = 0 ; i < input.size() ; i++) {
+        auto future = QtConcurrent::run(func, input[i]);
+        combinator << future;
+        futures << future;
+    }
+
+    AsyncFuture::observe(combinator.future()).subscribe([=]() {
+        QList<T> res;
+        for (int i = 0 ; i < futures.size(); i++) {
+            res << futures[i].result();
+        }
+        auto d = defer;
+        d.complete(res);
+    });
+
+    return defer.future();
+}
+
+void Example::example_mapped()
+{
+    auto worker = [=](int value) {
+        Automator::wait(10);
+        return value * value;
+    };
+
+    QList<int> input, expected;
+    for (int i = 0; i < 3; i++) {
+        input << i;
+        expected << i * i;
+    }
+
+    QFuture<int> future = mapped<int>(input, worker);
+
+    Test::waitUntil(future);
+
+    QCOMPARE(future.isFinished(), true);
+
+    QList<int> result = future.results();
+
+    QVERIFY(result == expected);
+}
+
