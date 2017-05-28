@@ -348,7 +348,7 @@ QFuture<T> mapped(Sequence input, Functor func){
     return defer.future();
 }
 
-void Example::example_mapped()
+void Example::example_qtconcurrent_mapped()
 {
     auto worker = [=](int value) {
         Automator::wait(10);
