@@ -147,28 +147,30 @@ void AsyncFutureTests::test_QFutureWatcher_in_thread()
     }
 }
 
+#define TYPEOF(x) std::decay<decltype(x)>::type
+
 void AsyncFutureTests::test_function_traits()
 {
     auto func1 = []() {
     };
 
-    QVERIFY(Private::function_traits<typeof func1>::result_type_is_future == 0);
-    QVERIFY((std::is_same<Private::function_traits<typeof func1>::future_arg_type, void>::value) == 1);
+    QVERIFY(Private::function_traits<TYPEOF(func1)>::result_type_is_future == 0);
+    QVERIFY((std::is_same<Private::function_traits<TYPEOF(func1)>::future_arg_type, void>::value) == 1);
 
     auto func2 = []() -> QFuture<int> {
         return QFuture<int>();
     };
 
-    QVERIFY(Private::function_traits<typeof func2>::result_type_is_future == true);
-    QVERIFY((std::is_same<Private::function_traits<typeof func2>::future_arg_type, void>::value) == 0);
-    QVERIFY((std::is_same<Private::function_traits<typeof func2>::future_arg_type, int>::value) == 1);
+    QVERIFY(Private::function_traits<TYPEOF(func2)>::result_type_is_future == true);
+    QVERIFY((std::is_same<Private::function_traits<TYPEOF(func2)>::future_arg_type, void>::value) == 0);
+    QVERIFY((std::is_same<Private::function_traits<TYPEOF(func2)>::future_arg_type, int>::value) == 1);
 
     auto func3 = []() -> QFuture<void> {
         return QFuture<void>();
     };
 
-    QVERIFY(Private::function_traits<typeof func3>::result_type_is_future == true);
-    QVERIFY((std::is_same<Private::function_traits<typeof func3>::future_arg_type, void>::value) == 1);
+    QVERIFY(Private::function_traits<TYPEOF(func3)>::result_type_is_future == true);
+    QVERIFY((std::is_same<Private::function_traits<TYPEOF(func3)>::future_arg_type, void>::value) == 1);
 }
 
 void AsyncFutureTests::test_private_DeferredFuture()
