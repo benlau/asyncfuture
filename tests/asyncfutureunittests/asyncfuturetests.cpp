@@ -895,6 +895,24 @@ void AsyncFutureTests::test_Deferred_across_thread()
     QCOMPARE(defer.future().result(), 99);
 }
 
+void AsyncFutureTests::test_Deferred_inherit()
+{
+    class CustomDeferredVoid : public Deferred<void> {
+    public:
+        CustomDeferredVoid() {
+            deferredFuture->setProgressRange(0, 3);
+        }
+    };
+
+    class CustomDeferredInt : public Deferred<int> {
+    public:
+        CustomDeferredInt() {
+            deferredFuture->setProgressRange(0, 3);
+        }
+    };
+
+}
+
 void AsyncFutureTests::test_Combinator()
 {
     {

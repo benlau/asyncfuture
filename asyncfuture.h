@@ -739,35 +739,34 @@ class Deferred : public Observable<T> {
 
 public:
     Deferred() : Observable<T>(),
-              defer(Private::DeferredFuture<T>::create())  {
-        this->m_future = defer->future();
+              deferredFuture(Private::DeferredFuture<T>::create())  {
+        this->m_future = deferredFuture->future();
     }
 
     void complete(QFuture<T> future) {
-        defer->complete(future);
+        deferredFuture->complete(future);
     }
 
     void complete(T value)
     {
-        defer->complete(value);
+        deferredFuture->complete(value);
     }
 
     void complete(QList<T> value) {
-        defer->complete(value);
+        deferredFuture->complete(value);
     }
 
     template <typename ANY>
     void cancel(QFuture<ANY> future) {
-        defer->cancel(future);
+        deferredFuture->cancel(future);
     }
-
 
     void cancel() {
-        defer->cancel();
+        deferredFuture->cancel();
     }
 
-private:
-    QSharedPointer<Private::DeferredFuture<T> > defer;
+protected:
+    QSharedPointer<Private::DeferredFuture<T> > deferredFuture;
 };
 
 template<>
@@ -775,29 +774,29 @@ class Deferred<void> : public Observable<void> {
 
 public:
     Deferred() : Observable<void>(),
-              defer(Private::DeferredFuture<void>::create())  {
-        this->m_future = defer->future();
+              deferredFuture(Private::DeferredFuture<void>::create())  {
+        this->m_future = deferredFuture->future();
     }
 
     void complete(QFuture<void> future) {
-        defer->complete(future);
+        deferredFuture->complete(future);
     }
 
     void complete() {
-        defer->complete();
+        deferredFuture->complete();
     }
 
     template <typename ANY>
     void cancel(QFuture<ANY> future) {
-        defer->cancel(future);
+        deferredFuture->cancel(future);
     }
 
     void cancel() {
-        defer->cancel();
+        deferredFuture->cancel();
     }
 
-private:
-    QSharedPointer<Private::DeferredFuture<void> > defer;
+protected:
+    QSharedPointer<Private::DeferredFuture<void> > deferredFuture;
 };
 
 typedef enum {
