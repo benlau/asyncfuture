@@ -3,6 +3,7 @@
 #include <QFuture>
 #include <QFutureWatcher>
 #include <Automator>
+#include <QFutureWatcher>
 #include "testfunctions.h"
 #include "asyncfuture.h"
 #include "asyncfuturetests.h"
@@ -909,8 +910,48 @@ void AsyncFutureTests::test_Deferred_inherit()
         CustomDeferredInt() {
             deferredFuture->setProgressRange(0, 3);
         }
+
+        void reportResult(int value, int index) {
+            int progressValue = future().progressValue();
+            deferredFuture->reportResult(value, index);
+            deferredFuture->setProgressValue(progressValue + 1);
+        }
     };
 
+
+    CustomDeferredInt defer;
+    QCOMPARE(defer.future().progressValue(), 0);
+    QList<int> progressList;
+
+    QFutureWatcher<int> watcher;
+    connect(&watcher, &QFutureWatcher<int>::progressValueChanged, [&](int value) {
+        progressList << value;
+    });
+    watcher.setFuture(defer.future());
+
+    defer.reportResult(2, 2);
+    QCOMPARE(defer.future().progressValue(), 1);
+
+    defer.reportResult(1, 1);
+    QCOMPARE(defer.future().progressValue(), 2);
+
+    defer.reportResult(3, 0);
+    QCOMPARE(defer.future().progressValue(), 3);
+
+    QVERIFY(!defer.future().isFinished());
+
+    QList<int> expected;
+    expected << 0 << 1 << 2;
+    defer.complete(expected);
+
+    QVERIFY(defer.future().results() == expected);
+
+    Automator::wait(100);
+    QVERIFY(progressList.size() > 1);
+    QVERIFY(progressList.size() < 3);
+    for (int i = 0 ; i < progressList.size() - 1;i++) {
+        QVERIFY(progressList[i] < progressList[i+1]);
+    }
 }
 
 void AsyncFutureTests::test_Combinator()

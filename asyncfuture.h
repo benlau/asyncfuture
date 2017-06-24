@@ -299,15 +299,13 @@ public:
     // A virtual reference count system. If autoDelete is not true, it won't delete the object even the count is zero
     int refCount;
 
-protected:
+    template <typename R>
+    void reportResult(R& value, int index = -1) {
+        QFutureInterface<T>::reportResult(value, index);
+    }
 
     void reportResult(Value<void> &value) {
         Q_UNUSED(value);
-    }
-
-    template <typename R>
-    void reportResult(R& value) {
-        QFutureInterface<T>::reportResult(value);
     }
 
     template <typename R>
@@ -322,6 +320,7 @@ protected:
         QFutureInterface<T>::reportResult(value.value);
     }
 
+protected:
 };
 
 class CombinedFuture: public DeferredFuture<void> {
