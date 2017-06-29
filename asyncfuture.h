@@ -144,6 +144,36 @@ public:
         cancel();
     }
 
+    template <typename ANY>
+    void track(QFuture<ANY> future) {
+        QPointer<DeferredFuture<T>> thiz = this;
+        QFutureWatcher<ANY> *watcher = new QFutureWatcher<ANY>(this);
+
+        QObject::connect(watcher, &QFutureWatcher<ANY>::finished, [=]() {
+            watcher->disconnect();
+            watcher->deleteLater();
+        });
+
+        QObject::connect(watcher, &QFutureWatcher<ANY>::progressValueChanged, [=](int value) {
+            if (thiz.isNull()) {
+                return;
+            }
+            thiz->setProgressValue(value);
+        });
+
+        QObject::connect(watcher, &QFutureWatcher<ANY>::progressRangeChanged, [=](int min, int max) {
+            if (thiz.isNull()) {
+                return;
+            }
+            thiz->setProgressRange(min, max);
+        });
+
+        watcher->setFuture(future);
+
+        QFutureInterface<T>::setProgressRange(future.progressMinimum(), future.progressMaximum());
+        QFutureInterface<T>::setProgressValue(future.progressValue());
+    }
+
     // complete<void>()
     void complete() {
         if (resolved) {
@@ -764,6 +794,11 @@ public:
         deferredFuture->cancel();
     }
 
+    template <typename ANY>
+    void track(QFuture<ANY> future) {
+        deferredFuture->track(future);
+    }
+
 protected:
     QSharedPointer<Private::DeferredFuture<T> > deferredFuture;
 };
@@ -792,6 +827,11 @@ public:
 
     void cancel() {
         deferredFuture->cancel();
+    }
+
+    template <typename ANY>
+    void track(QFuture<ANY> future) {
+        deferredFuture->track(future);
     }
 
 protected:

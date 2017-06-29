@@ -957,6 +957,39 @@ void AsyncFutureTests::test_Deferred_inherit()
     }
 }
 
+void AsyncFutureTests::test_Deferred_track()
+{
+    class CustomDeferred : public Deferred<int> {
+    public:
+        AsyncFuture::Private::DeferredFuture<int>* deferred() const {
+            return deferredFuture.data();
+        }
+    };
+
+    CustomDeferred cd;
+    cd.deferred()->setProgressRange(0, 10);
+
+    AsyncFuture::Deferred<int> defer;
+    defer.track(cd.future());
+
+    QCOMPARE(defer.future().progressMaximum(), 10);
+    QCOMPARE(defer.future().progressValue(), 0);
+
+    cd.deferred()->setProgressValue(1);
+    Automator::wait(10);
+
+    QCOMPARE(defer.future().progressMaximum(), 10);
+    QCOMPARE(defer.future().progressValue(), 1);
+
+    cd.deferred()->setProgressValue(10);
+    Automator::wait(10);
+
+    QCOMPARE(defer.future().progressMaximum(), 10);
+    QCOMPARE(defer.future().progressValue(), 10);
+    QVERIFY(!defer.future().isFinished());
+
+}
+
 void AsyncFutureTests::test_Combinator()
 {
     {
