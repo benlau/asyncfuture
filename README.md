@@ -402,6 +402,32 @@ Cancel the future object
 
 This future object is deferred to cancel according to the input future. Once it is completed, this future will be cancelled. However, if the input future is cancelled. Then this future object will just ignore it. Unless it fulfils the auto-cancellation rule.
 
+**track(QFuture target)**
+
+Track the progress of target future.
+
+It will set the progressMinimum and progressMaximum value from the target future. Moreover, it will bind the progressValueChanged signal and track the progress.
+
+Remarks: It won't complete a future even the progressValue has been reached maximum
+
+Added since v0.3.6
+
+Example
+
+```
+auto defer = AsyncFuture::deferred<void>();
+
+auto mappedFuture = QtConcurrent::mapped(data, workerFunc);
+
+defer.track(mappedFuture);
+
+AsyncFuture::observe(mappedFuture).subscribute([=]() mutable {
+   defer.complete();
+});
+
+return defer.future(); // It is a future with progress value same as the mappedFuture, but it don't contains the result.
+```
+
 
 Examples
 ========
