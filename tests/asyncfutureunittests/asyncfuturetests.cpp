@@ -884,10 +884,9 @@ void AsyncFutureTests::test_Deferred_across_thread()
 {
     auto defer = deferred<int>();
 
-    auto worker = [=]() {
+    auto worker = [=]() mutable {
         Automator::wait(50);
-        auto d = defer;
-        d.complete(99);
+        defer.complete(99);
     };
 
     QtConcurrent::run(worker);

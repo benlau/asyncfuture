@@ -549,6 +549,34 @@ struct function_traits<ReturnType(ClassType::*)(Args...) const>
     };
 };
 
+/* It is an additional to the original function_traits to handle non-const function (with mutable keyword lambda). */
+
+template <typename ClassType, typename ReturnType, typename... Args>
+struct function_traits<ReturnType(ClassType::*)(Args...)>
+// we specialize for pointers to member function
+{
+    enum { arity = sizeof...(Args) };
+    // arity is the number of arguments.
+
+    typedef ReturnType result_type;
+
+    enum {
+        result_type_is_future = future_traits<result_type>::is_future
+    };
+
+    // If the result_type is a QFuture<T>, the type will be T. Otherwise, it is void
+    typedef typename future_traits<result_type>::arg_type future_arg_type;
+
+    template <size_t i>
+    struct arg
+    {
+        typedef typename std::tuple_element<i, std::tuple<Args...>>::type type;
+        // the i-th argument is equivalent to the i-th tuple element of a tuple
+        // composed of those arguments.
+    };
+};
+
+
 template <typename T>
 struct signal_traits {
 };

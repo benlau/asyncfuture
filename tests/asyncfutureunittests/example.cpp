@@ -336,13 +336,12 @@ QFuture<T> mapped(Sequence input, Functor func){
         futures << future;
     }
 
-    AsyncFuture::observe(combinator.future()).subscribe([=]() {
+    AsyncFuture::observe(combinator.future()).subscribe([=]() mutable {
         QList<T> res;
         for (int i = 0 ; i < futures.size(); i++) {
             res << futures[i].result();
         }
-        auto d = defer;
-        d.complete(res);
+        defer.complete(res);
     });
 
     return defer.future();

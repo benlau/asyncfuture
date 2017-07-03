@@ -46,9 +46,8 @@ void BugTests::test_nested_context()
 
                 auto future = action1();
 
-                observe(future).context(this, [=]() {
-                    auto d = defer;
-                    d.complete(true);
+                observe(future).context(this, [=]() mutable {
+                    defer.complete(true);
                 });
 
                 return defer.future();
