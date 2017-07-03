@@ -1106,6 +1106,41 @@ void AsyncFutureTests::test_Combinator()
         QCOMPARE(canceled.called, true);
     }
 
+    {
+        // ccombinator << Deferred << Deferred
+        auto d1 = deferred<int>();
+        auto d2 = deferred<QString>();
+        auto d3 = deferred<void>();
+
+        auto combinator = combine(AllSettled);
+        combinator << d1 << d2 << d3;
+
+        QFuture<void> future = combinator.future();
+
+        Callable<void> completed;
+        Callable<void> canceled;
+
+        observe(future).subscribe(completed.func, canceled.func);
+
+        d1.complete(2);
+        d2.cancel();
+
+        QVERIFY(!waitUntil(future,1000));
+
+        QCOMPARE(future.isFinished(), false);
+        QCOMPARE(future.isCanceled(), false);
+
+        QCOMPARE(canceled.called, false);
+        d3.complete();
+
+        QVERIFY(waitUntil(future,1000));
+        QCOMPARE(future.isFinished(), true);
+        QCOMPARE(future.isCanceled(), true);
+        QCOMPARE(canceled.called, true);
+
+
+    }
+
 }
 
 void AsyncFutureTests::test_Combinator_add_to_already_finished()

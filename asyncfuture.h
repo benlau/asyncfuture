@@ -871,6 +871,12 @@ public:
         combinedFuture->addFuture(future);
         return *this;
     }
+
+    template <typename T>
+    Combinator& operator<<(Deferred<T> deferred) {
+        combinedFuture->addFuture(deferred.future());
+        return *this;
+    }
 };
 
 template <typename T>
