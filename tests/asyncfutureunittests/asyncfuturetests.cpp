@@ -989,6 +989,22 @@ void AsyncFutureTests::test_Deferred_track()
 
 }
 
+void AsyncFutureTests::test_Deferred_setProgress()
+{
+    auto defer = AsyncFuture::deferred<void>();
+
+    QCOMPARE(defer.future().progressMaximum(), 0);
+    QCOMPARE(defer.future().progressMinimum(), 0);
+    QCOMPARE(defer.future().progressValue(), 0);
+
+    defer.setProgressRange(2,10);
+    defer.setProgressValue(3);
+
+    QCOMPARE(defer.future().progressMaximum(), 10);
+    QCOMPARE(defer.future().progressMinimum(), 2);
+    QCOMPARE(defer.future().progressValue(), 3);
+}
+
 void AsyncFutureTests::test_Combinator()
 {
     {
