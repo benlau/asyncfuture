@@ -917,7 +917,6 @@ void AsyncFutureTests::test_Deferred_inherit()
         }
     };
 
-
     CustomDeferredInt defer;
     QCOMPARE(defer.future().progressValue(), 0);
     QList<int> progressList;
@@ -991,7 +990,21 @@ void AsyncFutureTests::test_Deferred_track()
 
 void AsyncFutureTests::test_Deferred_setProgress()
 {
-    auto defer = AsyncFuture::deferred<void>();
+    class CustomDeferred : public Deferred<void> {
+    public:
+        CustomDeferred() {
+        }
+
+        void setProgressRange(int minimum, int maximum) {
+            deferredFuture->setProgressRange(minimum, maximum);
+        }
+
+        void setProgressValue(int value) {
+            deferredFuture->setProgressValue(value);
+        }
+    };
+
+    CustomDeferred defer;
 
     QCOMPARE(defer.future().progressMaximum(), 0);
     QCOMPARE(defer.future().progressMinimum(), 0);

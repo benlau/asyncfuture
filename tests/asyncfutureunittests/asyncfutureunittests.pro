@@ -23,7 +23,8 @@ include(vendor/vendor.pri)
 include(../../asyncfuture.pri)
 
 DISTFILES +=     qpm.json  \
-    ../../README.md
+    ../../README.md \
+    ../../qpm.json
 
 HEADERS += \
     example.h \

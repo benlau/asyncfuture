@@ -63,7 +63,6 @@ private slots:
     void test_Deferred_track();
     void test_Deferred_setProgress();
 
-
     void test_Combinator();
 
     void test_Combinator_add_to_already_finished();
