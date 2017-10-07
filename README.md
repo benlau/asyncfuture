@@ -9,6 +9,11 @@ AsyncFuture is designed to enhance the function to offer a better way to use it 
 
 Remarks: You may use this project together with [QuickFuture](https://github.com/benlau/quickfuture) for QML programming.
 
+Reference Articles
+------------------
+
+1. [Multithreading Programming with Future & Promise – E-Fever – Medium](https://medium.com/e-fever/multithreading-programming-with-future-promise-2d35e13b9404)
+
 Features
 ========
 
