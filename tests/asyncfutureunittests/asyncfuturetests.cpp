@@ -640,6 +640,35 @@ void AsyncFutureTests::test_Observable_subscribe_return_future()
     QCOMPARE(observable.future().result(), 10);
 }
 
+void AsyncFutureTests::test_Observable_subscribe_return_canceledFuture()
+{
+    auto start = Deferred<void>();
+    auto f1 = start.future();
+    QList<int> sequence;
+    QList<int> expectedSequence;
+    expectedSequence << 2;
+
+    auto defer = Deferred<void>();
+    defer.cancel();
+    auto canceledFuture = defer.future();
+
+    auto f2 = observe(f1).subscribe([&]() {
+        sequence << 2;
+        return canceledFuture;
+    }).future();
+
+    auto f3 = observe(f2).subscribe([&]() {
+        sequence << 3;
+    }).future();
+
+    start.complete();
+
+    waitUntil(f3, 1000);
+
+    QCOMPARE(sequence, expectedSequence);
+
+}
+
 
 void AsyncFutureTests::test_Deferred()
 {

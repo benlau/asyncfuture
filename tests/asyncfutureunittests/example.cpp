@@ -371,3 +371,56 @@ void Example::example_qtconcurrent_mapped()
     QVERIFY(result == expected);
 }
 
+template <typename Functor, typename Token>
+auto cancellationWrapper(Functor functor, Token token) -> std::function<QFuture<void>()> {
+
+    return [=]() mutable -> QFuture<void> {
+        if (token.isCanceled()) {
+            return token;
+        }
+
+        functor();
+        auto defer = deferred<void>();
+        defer.complete();
+        return defer.future();
+    };
+}
+
+void Example::example_CancellationToken()
+{
+    Deferred<void> cancellation = deferred<void>();
+
+    QFuture<void> cancellationToken = cancellation.future();
+
+    Deferred<void> start;
+
+    QList<qreal> sequence;
+    QList<qreal> expectedSquence;
+    expectedSquence << 1 << 1.5;
+
+    auto f1 = start.future();
+
+    auto f2 = observe(f1).subscribe(cancellationWrapper([&]() {
+        sequence << 1;
+    }, cancellationToken)).future();
+
+    observe(f2).subscribe([&]() {
+        sequence << 1.5;
+        cancellation.cancel();
+    });
+
+    auto f3 = observe(f2).subscribe(cancellationWrapper([&]() mutable {
+        sequence << 2;
+    },cancellationToken)).future();
+
+    observe(f3).subscribe(cancellationWrapper([&]() {
+        sequence << 3;
+    }, cancellationToken)).future();
+
+    start.complete();
+    Automator::wait(500);
+
+    QCOMPARE(sequence, expectedSquence);
+
+}
+

@@ -25,5 +25,7 @@ private slots:
     void example_fileactor();
 
     void example_qtconcurrent_mapped();
+
+    void example_CancellationToken();
 };
 
