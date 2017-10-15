@@ -669,6 +669,80 @@ void AsyncFutureTests::test_Observable_subscribe_return_canceledFuture()
 
 }
 
+void AsyncFutureTests::test_Observable_progress()
+{
+    class CustomDeferred: public AsyncFuture::Deferred<int> {
+    public:
+
+        void setProgressValue(int value) {
+            AsyncFuture::Deferred<int>::deferredFuture->setProgressValue(value);
+        }
+
+        void setProgressRange(int min, int max) {
+            AsyncFuture::Deferred<int>::deferredFuture->setProgressRange(min, max);
+        }
+
+        void reportResult(int value, int index) {
+            AsyncFuture::Deferred<int>::deferredFuture->reportResult(value, index);
+        }
+
+    };
+
+    CustomDeferred defer;
+    auto future = defer.future();
+
+    QList<int> sequence;
+    int count = 0;
+    int value = 999;
+    int min = 999;
+    int max = -1;
+
+    bool inMainThread = false;
+
+    defer.progress([&]() -> bool {
+        count++;
+        value = future.progressValue();
+        min = future.progressMinimum();
+        max = future.progressMaximum();
+
+        inMainThread = (QThread::currentThread() == QCoreApplication::instance()->thread());
+        return value != max;
+    });
+
+    QCOMPARE(count, 0);
+    defer.setProgressRange(0, 10);
+
+    QTRY_VERIFY2_WITH_TIMEOUT(count > 0, "", 1000);
+    QCOMPARE(value, 0);
+    QCOMPARE(min, 0);
+    QCOMPARE(max, 10);
+    QVERIFY(inMainThread);
+    int oldCount = count;
+
+    defer.setProgressValue(5);
+    QTRY_VERIFY2_WITH_TIMEOUT(oldCount != count, "", 1000);
+
+    QCOMPARE(value, 5);
+    QCOMPARE(min, 0);
+    QCOMPARE(max, 10);
+    QVERIFY(inMainThread);
+    oldCount = count;
+
+    defer.setProgressValue(10);
+    QTRY_VERIFY2_WITH_TIMEOUT(oldCount != count, "", 1000);
+
+    QCOMPARE(value, 10);
+    QCOMPARE(min, 0);
+    QCOMPARE(max, 10);
+    QVERIFY(inMainThread);
+    oldCount = count;
+
+    defer.setProgressValue(12);
+    Automator::wait(100);
+
+    QVERIFY(oldCount == count);
+}
+
 
 void AsyncFutureTests::test_Deferred()
 {

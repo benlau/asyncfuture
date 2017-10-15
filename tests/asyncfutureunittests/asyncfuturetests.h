@@ -56,6 +56,8 @@ private slots:
 
     void test_Observable_subscribe_return_canceledFuture();
 
+    void test_Observable_progress();
+
     void test_Deferred();
     void test_Deferred_complete_future();
     void test_Deferred_complete_list();

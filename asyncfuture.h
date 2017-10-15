@@ -433,6 +433,7 @@ private:
 
 };
 
+/// Proxy is a proxy class to connect a QObject signal to a callback function
 template <typename ARG>
 class Proxy : public QObject {
 public:
@@ -761,6 +762,52 @@ public:
         return _subscribe<typename Private::future_traits<typename Private::function_traits<Completed>::result_type>::arg_type,
                          typename Private::function_traits<Completed>::result_type
                 >(onCompleted, [](){});
+    }
+
+
+    template <typename Functor>
+    typename std::enable_if<std::is_same<typename Private::function_traits<Functor>::result_type, void>::value, void>::type
+    progress(Functor onProgress) {
+        progress([=]() {
+            onProgress();
+            return true;
+        });
+    }
+
+    template <typename Functor>
+    typename std::enable_if<std::is_same<typename Private::function_traits<Functor>::result_type,bool>::value, void>::type
+    progress(Functor onProgress) {
+        QFutureWatcher<T> *watcher = new QFutureWatcher<T>();
+
+        auto wrapper = [=]() {
+
+            if (!onProgress()) {
+                watcher->disconnect();
+                watcher->deleteLater();
+            }
+        };
+
+        QObject::connect(watcher, &QFutureWatcher<T>::finished,
+                         [=]() {
+            watcher->disconnect();
+            watcher->deleteLater();
+        });
+
+        QObject::connect(watcher, &QFutureWatcher<T>::canceled,
+                         [=]() {
+            watcher->disconnect();
+            watcher->deleteLater();
+        });
+
+        QObject::connect(watcher, &QFutureWatcher<T>::progressValueChanged, wrapper);
+
+        QObject::connect(watcher, &QFutureWatcher<T>::progressRangeChanged, wrapper);
+
+        if (QThread::currentThread() != QCoreApplication::instance()->thread()) {
+            watcher->moveToThread(QCoreApplication::instance()->thread());
+        }
+
+        watcher->setFuture(m_future);
     }
 
 
