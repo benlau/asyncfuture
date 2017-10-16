@@ -256,16 +256,24 @@ See [`Deferred<T>`](#deferredt)
 Observable&lt;T&gt;
 ------------
 
-Obsevable<T> is a chainable utility for observing a QFuture object. It is created by the observe() function. It can register multiple callbacks to be triggered in different situations. And that will create a new Observable<T> / QFuture object to represent the result of the callback function. It may even call QtConcurrent::run() within the callback function to create a thread. Therefore, it could create a more complex/flexible workflow.
+Observable&lt;T&gt; is a chainable utility class for observing a QFuture object. It is created by the observe() function. It can register multiple callbacks to be triggered in different situations. And that will create a new Observable<T> / QFuture object to represent the result of the callback function. It may even call QtConcurrent::run() within the callback function to run the funciton in another thread. Therefore, it could create a more complex/flexible workflow.
 
-**QFuture&lt;T&gt; future()**
+```
+QFuture<int> future
+
+Observable<int> observable1 = AsyncFuture::observe(future); 
+// or
+auto observable2 = AsyncFuture::observe(future); 
+```
+
+**QFuture&lt;T&gt; Observable&lt;T&gt;::future()**
 
 Obtain the QFuture object to represent the result.
 
-**Observable&lt;T&gt; subscribe(Completed onCompleted, Canceled onCanceled)**
+**Observable&lt;T&gt; Observable&lt;T&gt;::subscribe(Completed onCompleted, Canceled onCanceled)**
 
-    Observable<T> subscribe(Completed onCompleted);
-    Observable<T> subscribe(Completed onCompleted, Canceled onCanceled);
+    Observable<T> Observable<T>::subscribe(Completed onCompleted);
+    Observable<T> Observable<T>::subscribe(Completed onCompleted, Canceled onCanceled);
 
 Register a onCompleted and/or onCanceled callback to the observed QFuture object. Unlike the context() function, the callbacks will be triggered as long as the current thread exists. The return value is an Observable<R> object where R is the return type of the onCompleted callback.
 
@@ -285,7 +293,7 @@ observe(future).subscribe([](bool toggled) {
 
 ```
 
-**Observable&lt;R&gt; context(QObject&#42; contextObject, Completed onCompleted)**
+**Observable&lt;R&gt; Observable&lt;T&gt;::context(QObject&#42; contextObject, Completed onCompleted)**
 
 *This API is for advanced users only*
 
@@ -387,27 +395,27 @@ But there has an exception if you have even called Deferred.complete(`QFuture<T>
   QCOMPARE(future.isCanceled(), false);
 ```
 
-**complete(T) / complete()**
+**Deferred&lt;T&gt;::complete(T) / Deferred&lt;T&gt;::complete()**
 
 Complete this future object with the given arguments
 
-**complete(QList<T>)**
+**Deferred&lt;T&gt;::complete(QList<T>)**
 
 Complete the future object with a list of result. User may obtain all the value by QFuture::results().
 
-**complete(QFuture<T>)**
+**Deferred&lt;T&gt;::complete(QFuture<T>)**
 
 This future object is deferred to complete/cancel. It will adopt the state from the input future. If the input future is completed, then it will be completed too. That is same for cancel.
 
-**cancel()**
+**Deferred&lt;T&gt;::cancel()**
 
 Cancel the future object
 
-**cancel(QFuture<ANY>)**
+**Deferred&lt;T&gt;::cancel(QFuture<ANY>)**
 
 This future object is deferred to cancel according to the input future. Once it is completed, this future will be cancelled. However, if the input future is cancelled. Then this future object will just ignore it. Unless it fulfils the auto-cancellation rule.
 
-**track(QFuture target)**
+**Deferred&lt;T&gt;::track(QFuture target)**
 
 Track the progress of target future.
 
