@@ -152,6 +152,8 @@ void AsyncFutureTests::test_QFutureWatcher_in_thread()
 
 void AsyncFutureTests::test_function_traits()
 {
+    int dummy = 0;
+
     auto func1 = []() {
     };
 
@@ -172,6 +174,13 @@ void AsyncFutureTests::test_function_traits()
 
     QVERIFY(Private::function_traits<TYPEOF(func3)>::result_type_is_future == true);
     QVERIFY((std::is_same<Private::function_traits<TYPEOF(func3)>::future_arg_type, void>::value) == 1);
+
+    auto func4 = [=](bool) mutable -> void  {
+        dummy++;
+    };
+
+    QVERIFY((std::is_same<Private::function_traits<TYPEOF(func4)>::template arg<0>::type, bool>::value) == 1);
+
 }
 
 void AsyncFutureTests::test_private_DeferredFuture()
