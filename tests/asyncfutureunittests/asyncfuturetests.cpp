@@ -750,6 +750,17 @@ void AsyncFutureTests::test_Observable_progress()
     Automator::wait(100);
 
     QVERIFY(oldCount == count);
+
+    {
+        // Test with mutable function
+
+        auto defer = AsyncFuture::deferred<void>();
+
+        defer.progress([=]() mutable -> void {
+
+        });
+
+    }
 }
 
 

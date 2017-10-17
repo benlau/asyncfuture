@@ -768,7 +768,7 @@ public:
     template <typename Functor>
     typename std::enable_if<std::is_same<typename Private::function_traits<Functor>::result_type, void>::value, void>::type
     progress(Functor onProgress) {
-        progress([=]() {
+        progress([=]() mutable {
             onProgress();
             return true;
         });
@@ -779,7 +779,7 @@ public:
     progress(Functor onProgress) {
         QFutureWatcher<T> *watcher = new QFutureWatcher<T>();
 
-        auto wrapper = [=]() {
+        auto wrapper = [=]() mutable {
 
             if (!onProgress()) {
                 watcher->disconnect();
