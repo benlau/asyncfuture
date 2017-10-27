@@ -17,8 +17,118 @@ namespace AsyncFuture {
 
 namespace Private {
 
-// Value is a wrapper of data structure which could contain <void> type.
-// AsyncFuture do not use QVariant because it need user to register before use.
+/* Begin traits functions */
+
+// Determine is the input type a QFuture
+template <typename T>
+struct future_traits {
+    enum {
+        is_future = 0
+    };
+
+    typedef void arg_type;
+};
+
+template <template <typename> class C, typename T>
+struct future_traits<C <T> >
+{
+    enum {
+        is_future = 0
+    };
+
+    typedef void arg_type;
+};
+
+template <typename T>
+struct future_traits<QFuture<T> >{
+    enum {
+        is_future = 1
+    };
+    typedef T arg_type;
+};
+
+// function_traits: Source: http://stackoverflow.com/questions/7943525/is-it-possible-to-figure-out-the-parameter-type-and-return-type-of-a-lambda
+
+template <typename T>
+struct function_traits
+        : public function_traits<decltype(&T::operator())>
+{};
+
+template <typename ClassType, typename ReturnType, typename... Args>
+struct function_traits<ReturnType(ClassType::*)(Args...) const>
+// we specialize for pointers to member function
+{
+    enum { arity = sizeof...(Args) };
+    // arity is the number of arguments.
+
+    typedef ReturnType result_type;
+
+    enum {
+        result_type_is_future = future_traits<result_type>::is_future
+    };
+
+    // If the result_type is a QFuture<T>, the type will be T. Otherwise, it is void
+    typedef typename future_traits<result_type>::arg_type future_arg_type;
+
+    template <size_t i>
+    struct arg
+    {
+        typedef typename std::tuple_element<i, std::tuple<Args...>>::type type;
+        // the i-th argument is equivalent to the i-th tuple element of a tuple
+        // composed of those arguments.
+    };
+};
+
+/* It is an additional to the original function_traits to handle non-const function (with mutable keyword lambda). */
+
+template <typename ClassType, typename ReturnType, typename... Args>
+struct function_traits<ReturnType(ClassType::*)(Args...)>
+// we specialize for pointers to member function
+{
+    enum { arity = sizeof...(Args) };
+    // arity is the number of arguments.
+
+    typedef ReturnType result_type;
+
+    enum {
+        result_type_is_future = future_traits<result_type>::is_future
+    };
+
+    // If the result_type is a QFuture<T>, the type will be T. Otherwise, it is void
+    typedef typename future_traits<result_type>::arg_type future_arg_type;
+
+    template <size_t i>
+    struct arg
+    {
+        typedef typename std::tuple_element<i, std::tuple<Args...>>::type type;
+        // the i-th argument is equivalent to the i-th tuple element of a tuple
+        // composed of those arguments.
+    };
+};
+
+
+template <typename T>
+struct signal_traits {
+};
+
+template <typename R, typename C>
+struct signal_traits<R (C::*)()> {
+    typedef void result_type;
+};
+
+template <typename R, typename C, typename ARG0>
+struct signal_traits<R (C::*)(ARG0)> {
+    typedef ARG0 result_type;
+};
+
+template <typename Functor>
+using RetType = typename function_traits<Functor>::result_type;
+
+/* End of traits functions */
+
+
+// Value is a wrapper of a data structure which could contain <void> type.
+// AsyncFuture does not use QVariant because it needs user to register before use.
 template <typename R>
 class Value {
 public:
@@ -34,6 +144,7 @@ public:
     Value(QFuture<R> future) {
         value = future.result();
     }
+
 
     R value;
 };
@@ -490,113 +601,11 @@ public:
     }
 };
 
-// Determine is the input type a QFuture
-template <typename T>
-struct future_traits {
-    enum {
-        is_future = 0
-    };
-
-    typedef void arg_type;
-};
-
-template <template <typename> class C, typename T>
-struct future_traits<C <T> >
-{
-    enum {
-        is_future = 0
-    };
-
-    typedef void arg_type;
-};
-
-template <typename T>
-struct future_traits<QFuture<T> >{
-    enum {
-        is_future = 1
-    };
-    typedef T arg_type;
-};
-
-// function_traits: Source: http://stackoverflow.com/questions/7943525/is-it-possible-to-figure-out-the-parameter-type-and-return-type-of-a-lambda
-
-template <typename T>
-struct function_traits
-        : public function_traits<decltype(&T::operator())>
-{};
-
-template <typename ClassType, typename ReturnType, typename... Args>
-struct function_traits<ReturnType(ClassType::*)(Args...) const>
-// we specialize for pointers to member function
-{
-    enum { arity = sizeof...(Args) };
-    // arity is the number of arguments.
-
-    typedef ReturnType result_type;
-
-    enum {
-        result_type_is_future = future_traits<result_type>::is_future
-    };
-
-    // If the result_type is a QFuture<T>, the type will be T. Otherwise, it is void
-    typedef typename future_traits<result_type>::arg_type future_arg_type;
-
-    template <size_t i>
-    struct arg
-    {
-        typedef typename std::tuple_element<i, std::tuple<Args...>>::type type;
-        // the i-th argument is equivalent to the i-th tuple element of a tuple
-        // composed of those arguments.
-    };
-};
-
-/* It is an additional to the original function_traits to handle non-const function (with mutable keyword lambda). */
-
-template <typename ClassType, typename ReturnType, typename... Args>
-struct function_traits<ReturnType(ClassType::*)(Args...)>
-// we specialize for pointers to member function
-{
-    enum { arity = sizeof...(Args) };
-    // arity is the number of arguments.
-
-    typedef ReturnType result_type;
-
-    enum {
-        result_type_is_future = future_traits<result_type>::is_future
-    };
-
-    // If the result_type is a QFuture<T>, the type will be T. Otherwise, it is void
-    typedef typename future_traits<result_type>::arg_type future_arg_type;
-
-    template <size_t i>
-    struct arg
-    {
-        typedef typename std::tuple_element<i, std::tuple<Args...>>::type type;
-        // the i-th argument is equivalent to the i-th tuple element of a tuple
-        // composed of those arguments.
-    };
-};
-
-
-template <typename T>
-struct signal_traits {
-};
-
-template <typename R, typename C>
-struct signal_traits<R (C::*)()> {
-    typedef void result_type;
-};
-
-template <typename R, typename C, typename ARG1>
-struct signal_traits<R (C::*)(ARG1)> {
-    typedef ARG1 result_type;
-};
-
 template <typename Functor, typename T>
 typename std::enable_if<!(std::is_same<T, void>::value || Private::function_traits<Functor>::arity != 1) ,
-Value<typename Private::function_traits<Functor>::result_type>>::type
+Value<RetType<Functor>>>::type
     invoke(Functor functor, QFuture<T> future) {
-    Value<typename Private::function_traits<Functor>::result_type> value(functor(future));
+    Value<RetType<Functor>> value(functor(future));
     return value;
 }
 
