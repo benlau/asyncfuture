@@ -12,7 +12,6 @@ before_install:
     - export GOPATH=`pwd`/gosrc
     - export PATH=`pwd`/gosrc/bin:$PATH
     - go get qpm.io/qpm
-    - find $GOPATH
     - sh -e /etc/init.d/xvfb start
 script:
     - git clone https://github.com/benlau/qtci.git

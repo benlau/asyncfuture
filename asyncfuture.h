@@ -124,6 +124,16 @@ struct signal_traits<R (C::*)(ARG0)> {
 template <typename Functor>
 using RetType = typename function_traits<Functor>::result_type;
 
+template <typename Functor>
+using Arg0Type = typename function_traits<Functor>::template arg<0>::type;
+
+template <typename Functor>
+struct ret_type_is_void {
+    enum {
+        value = std::is_same<RetType<Functor>, void>::value
+    };
+};
+
 /* End of traits functions */
 
 
@@ -638,15 +648,15 @@ voidInvoke(Functor functor, QFuture<T> future) {
 }
 
 template <typename Functor, typename T>
-typename std::enable_if<!std::is_same<typename Private::function_traits<Functor>::result_type, void>::value,
-Value<typename Private::function_traits<Functor>::result_type>>::type
+typename std::enable_if<!ret_type_is_void<Functor>::value,
+Value<RetType<Functor>>>::type
 run(Functor functor, QFuture<T> future) {
     auto value = invoke(functor,future);
     return value;
 }
 
 template <typename Functor, typename T>
-typename std::enable_if<std::is_same<typename Private::function_traits<Functor>::result_type, void>::value,
+typename std::enable_if<ret_type_is_void<Functor>::value,
 Value<void>>::type
 run(Functor functor, QFuture<T> future) {
     voidInvoke(functor, future);

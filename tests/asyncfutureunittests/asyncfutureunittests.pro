@@ -24,6 +24,7 @@ include(../../asyncfuture.pri)
 
 DISTFILES +=     qpm.json  \
     ../../README.md \
+    ../../.travis.yml \
     ../../qpm.json
 
 HEADERS += \
