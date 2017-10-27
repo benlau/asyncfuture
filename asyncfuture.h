@@ -134,6 +134,13 @@ struct ret_type_is_void {
     };
 };
 
+template <typename Functor>
+struct arg_count_is_zero {
+    enum {
+        value = (function_traits<Functor>::arity == 0)
+    };
+};
+
 /* End of traits functions */
 
 
@@ -612,41 +619,44 @@ public:
 };
 
 template <typename Functor, typename T>
-typename std::enable_if<!(std::is_same<T, void>::value || Private::function_traits<Functor>::arity != 1) ,
+typename std::enable_if<ret_type_is_void<Functor>::value && arg_count_is_zero<Functor>::value,
 Value<RetType<Functor>>>::type
-    invoke(Functor functor, QFuture<T> future) {
-    Value<RetType<Functor>> value(functor(future));
-    return value;
-}
-
-template <typename Functor, typename T>
-typename std::enable_if<(std::is_same<T, void>::value || Private::function_traits<Functor>::arity != 1) ,
-Value<typename Private::function_traits<Functor>::result_type>>::type
-    invoke(Functor functor, QFuture<T> future) {
-    Q_UNUSED(future);
-    static_assert(Private::function_traits<Functor>::arity == 0, "Your callback should not take any argument because the observed type is QFuture<void>");
-    Value<typename Private::function_traits<Functor>::result_type> value(functor());
-    return value;
-}
-
-template <typename Functor, typename T>
-typename std::enable_if<!(std::is_same<T, void>::value || Private::function_traits<Functor>::arity != 1) ,
-void>::type
-voidInvoke(Functor functor, QFuture<T> future) {
-    functor(future);
-}
-
-template <typename Functor, typename T>
-typename std::enable_if<(std::is_same<T, void>::value || Private::function_traits<Functor>::arity != 1) ,
-void>::type
-voidInvoke(Functor functor, QFuture<T> future) {
+run(Functor functor, QFuture<T> future) {
     Q_UNUSED(future);
     functor();
+
     /* Toubleshooting Tips:
      * 1) Are you observing a QFuture<void> but require an input argument in your callback function?
      */
+
+    return Value<void>();
 }
 
+template <typename Functor, typename T>
+typename std::enable_if<ret_type_is_void<Functor>::value && !arg_count_is_zero<Functor>::value,
+Value<RetType<Functor>>>::type
+run(Functor functor, QFuture<T> future) {
+    Q_UNUSED(future);
+    functor(future);
+    return Value<void>();
+}
+
+template <typename Functor, typename T>
+typename std::enable_if<!ret_type_is_void<Functor>::value && arg_count_is_zero<Functor>::value,
+Value<RetType<Functor>>>::type
+run(Functor functor, QFuture<T> future) {
+    Q_UNUSED(future);
+    return functor();
+}
+
+template <typename Functor, typename T>
+typename std::enable_if<!ret_type_is_void<Functor>::value && !arg_count_is_zero<Functor>::value,
+Value<RetType<Functor>>>::type
+run(Functor functor, QFuture<T> future) {
+    return functor(future);
+}
+
+/*
 template <typename Functor, typename T>
 typename std::enable_if<!ret_type_is_void<Functor>::value,
 Value<RetType<Functor>>>::type
@@ -662,6 +672,7 @@ run(Functor functor, QFuture<T> future) {
     voidInvoke(functor, future);
     return Value<void>();
 }
+*/
 
 /// Create a DeferredFuture will execute the callback functions when observed future finished
 /** DeferredType - The template type of the DeferredType
