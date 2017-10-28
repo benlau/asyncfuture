@@ -141,6 +141,20 @@ struct arg_count_is_zero {
     };
 };
 
+template <typename Functor>
+struct arg_count_is_one {
+    enum {
+        value = (function_traits<Functor>::arity == 1)
+    };
+};
+
+template <typename Functor>
+struct arg_count {
+    enum {
+        value = function_traits<Functor>::arity
+    };
+};
+
 /* End of traits functions */
 
 
@@ -636,7 +650,7 @@ template <typename Functor, typename T>
 typename std::enable_if<ret_type_is_void<Functor>::value && !arg_count_is_zero<Functor>::value,
 Value<RetType<Functor>>>::type
 run(Functor functor, QFuture<T> future) {
-    Q_UNUSED(future);
+    static_assert(arg_count<Functor>::value == 1, "AsyncFuture doesn't support callback function with more than one argument");
     functor(future);
     return Value<void>();
 }
@@ -764,6 +778,9 @@ public:
     Observable<typename Private::function_traits<Completed>::result_type>
     >::type
     subscribe(Completed onCompleted) {
+
+        static_assert(Private::arg_count<Completed>::value <= 1, "subscribe(callback): Callback function should not take more than 1 argument");
+
         return _subscribe<typename Private::function_traits<Completed>::result_type,
                          typename Private::function_traits<Completed>::result_type
                 >(onCompleted, [](){});
