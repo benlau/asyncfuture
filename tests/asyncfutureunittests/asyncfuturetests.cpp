@@ -532,6 +532,60 @@ void AsyncFutureTests::test_Observable_signal_with_argument()
     delete proxy;
 }
 
+void AsyncFutureTests::test_Observable_signal_by_signature()
+{
+
+    {
+        auto proxy = new SignalProxy(this);
+
+        QFuture<void> vFuture = observe(proxy, SIGNAL(proxy0())).future();
+
+        QCOMPARE(vFuture.isFinished(), false);
+        QCOMPARE(vFuture.isRunning(), true);
+
+        QMetaObject::invokeMethod(proxy, "proxy0");
+
+        QCOMPARE(vFuture.isFinished(), false);
+        QCOMPARE(vFuture.isRunning(), true);
+
+        QVERIFY(waitUntil([&](){
+            return vFuture.isFinished();
+        }, 1000));
+
+        QCOMPARE(vFuture.isFinished(), true);
+        QCOMPARE(vFuture.isRunning(), false);
+
+        delete proxy;
+    }
+
+    {
+        auto *proxy = new SignalProxy(this);
+
+        QFuture<QVariant> iFuture = observe(proxy, SIGNAL(proxy1(int))).future();
+
+        QCOMPARE(iFuture.isFinished(), false);
+        QCOMPARE(iFuture.isRunning(), true);
+        QMetaObject::invokeMethod(proxy,
+                                  "proxy1",
+                                  Qt::DirectConnection,
+                                  Q_ARG(int, 5));
+
+        QCOMPARE(iFuture.isFinished(), false);
+        QCOMPARE(iFuture.isRunning(), true);
+
+        QVERIFY(waitUntil([&](){
+            return iFuture.isFinished();
+        }, 1000));
+
+        QCOMPARE(iFuture.isFinished(), true);
+        QCOMPARE(iFuture.isRunning(), false);
+        QCOMPARE(iFuture.result().toInt(), 5);
+
+        delete proxy;
+    }
+
+}
+
 void AsyncFutureTests::test_Observable_signal_destroyed()
 {
     auto proxy = new SignalProxy(this);
@@ -678,7 +732,7 @@ void AsyncFutureTests::test_Observable_subscribe_return_canceledFuture()
 
 }
 
-void AsyncFutureTests::test_Observable_progress()
+void AsyncFutureTests::test_Observable_onProgress()
 {
     class CustomDeferred: public AsyncFuture::Deferred<int> {
     public:

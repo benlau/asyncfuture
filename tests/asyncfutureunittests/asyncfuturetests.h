@@ -46,6 +46,9 @@ private slots:
     void test_Observable_signal();
     void test_Observable_signal_with_argument();
 
+    void test_Observable_signal_by_signature();
+
+
     void test_Observable_signal_destroyed();
 
     void test_Observable_subscribe();
@@ -56,7 +59,7 @@ private slots:
 
     void test_Observable_subscribe_return_canceledFuture();
 
-    void test_Observable_progress();
+    void test_Observable_onProgress();
 
     void test_Deferred();
     void test_Deferred_complete_future();

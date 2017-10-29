@@ -626,7 +626,6 @@ public:
             if (methodId == 0) {
                 sender->disconnect(conn);
                 if (parameterTypes.count() > 0) {
-
                     Value<ARG> value(reinterpret_cast<ARG*>(_a[1]));
                     callback(value);
                 } else {
@@ -637,6 +636,76 @@ public:
         }
         return methodId;
     }
+};
+
+/// To bind a signal in const char* to callback
+class Proxy2 : public QObject {
+public:
+    inline Proxy2(QObject* parent) : QObject(parent) {
+    }
+
+    QVector<int> parameterTypes;
+    std::function<void(QVariant)> callback;
+    QMetaObject::Connection conn;
+    QPointer<QObject> sender;
+
+    inline void bind(QObject* source,QString signal) {
+        sender = source;
+
+        // Remove leading number
+        signal = signal.replace(QRegExp("^[0-9]*"), "");
+
+        const int memberOffset = QObject::staticMetaObject.methodCount();
+
+        int index = source->metaObject()->indexOfSignal(signal.toUtf8().constData());
+
+        if (index < 0) {
+            qWarning() << "AsyncFuture::Private::Proxy: No such signal: " << signal;
+            return;
+        }
+
+        QMetaMethod method = source->metaObject()->method(index);
+
+        parameterTypes = QVector<int>(method.parameterCount());
+
+        for (int i = 0 ; i < method.parameterCount() ; i++) {
+            parameterTypes[i] = method.parameterType(i);
+        }
+
+        conn = QMetaObject::connect(source, method.methodIndex(), this, memberOffset, Qt::QueuedConnection, 0);
+
+        if (!conn) {
+            qWarning() << "AsyncFuture::Private::Proxy: Failed to bind signal";
+        }
+    }
+
+    inline int qt_metacall(QMetaObject::Call _c, int _id, void **_a) {
+        int methodId = QObject::qt_metacall(_c, _id, _a);
+
+        if (methodId < 0) {
+            return methodId;
+        }
+
+        if (_c == QMetaObject::InvokeMetaMethod) {
+            if (methodId == 0) {
+                sender->disconnect(conn);
+                QVariant v;
+
+                if (parameterTypes.count() > 0) {
+                    const QMetaType::Type type = static_cast<QMetaType::Type>(parameterTypes.at(0));
+
+                    if (type == QMetaType::QVariant) {
+                        v = *reinterpret_cast<QVariant *>(_a[1]);
+                    } else {
+                        v = QVariant(type, _a[1]);
+                    }
+                }
+                callback(v);
+            }
+        }
+        return methodId;
+    }
+
 };
 
 /* call() : Run functor(future):void */
@@ -748,6 +817,8 @@ static DeferredFuture<DeferredType>* execute(QFuture<T> future, QObject* context
 
 
 } // End of Private Namespace
+
+/* Start of AsyncFuture Namespace */
 
 template <typename T>
 class Observable {
@@ -1060,6 +1131,26 @@ auto observe(QObject* object, Member pointToMemberFunction)
     };
 
     Observable< typename Private::signal_traits<Member>::result_type> observer(defer->future());
+    return observer;
+}
+
+inline Observable<QVariant> observe(QObject *object,QString signal)  {
+
+    auto defer = new Private::DeferredFuture<QVariant>();
+
+    auto proxy = new Private::Proxy2(defer);
+
+    defer->autoDelete = true;
+
+    defer->cancel(object, &QObject::destroyed);
+
+    proxy->bind(object, signal);
+    proxy->callback = [=](QVariant value) {
+        defer->complete(value);
+        proxy->deleteLater();
+    };
+
+    Observable<QVariant> observer(defer->future());
     return observer;
 }
 
