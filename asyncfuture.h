@@ -632,17 +632,57 @@ public:
     }
 };
 
+/* call() : Run functor(future):void */
+
+template<typename T>
+struct False : std::false_type {
+};
+
+template< typename Functor, typename T>
+struct is_callable {
+    enum {
+        value = (arg_count<Functor>::value == 1) &&
+                (!std::is_same<void, T>::value) &&
+                (std::is_convertible<Arg0Type<Functor>, T>::value)
+    };
+};
+
+template <typename Functor, typename T>
+typename std::enable_if<is_callable<Functor, T>::value, void>::type
+voidCall(Functor& functor, QFuture<T>& future) {
+    functor(future);
+}
+
+template <typename Functor, typename T>
+typename std::enable_if<!is_callable<Functor, T>::value, void>::type
+voidCall(Functor& functor, QFuture<T>& future) {
+    Q_UNUSED(functor);
+    Q_UNUSED(future);
+    static_assert(False<T>::value, "Your callback is not callable. Please validate the input argument type and observed QFuture.");
+}
+
+template <typename Functor, typename T>
+typename std::enable_if<is_callable<Functor, T>::value, RetType<Functor>>::type
+call(Functor& functor, QFuture<T>& future) {
+    return functor(future);
+}
+
+template <typename Functor, typename T>
+typename std::enable_if<!is_callable<Functor, T>::value, RetType<Functor>>::type
+call(Functor& functor, QFuture<T>& future) {
+    Q_UNUSED(functor);
+    Q_UNUSED(future);
+    static_assert(False<T>::value, "Your callback is not callable. Please validate the input argument type and observed QFuture.");
+}
+
+/* eval() : Evaluate the expression - "return functor(future)" that may have a void return type */
+
 template <typename Functor, typename T>
 typename std::enable_if<ret_type_is_void<Functor>::value && arg_count_is_zero<Functor>::value,
 Value<RetType<Functor>>>::type
 eval(Functor functor, QFuture<T> future) {
     Q_UNUSED(future);
     functor();
-
-    /* Toubleshooting Tips:
-     * 1) Are you observing a QFuture<void> but require an input argument in your callback function?
-     */
-
     return Value<void>();
 }
 
@@ -650,9 +690,8 @@ template <typename Functor, typename T>
 typename std::enable_if<ret_type_is_void<Functor>::value && !arg_count_is_zero<Functor>::value,
 Value<RetType<Functor>>>::type
 eval(Functor functor, QFuture<T> future) {
-    static_assert(arg_count<Functor>::value == 1, "AsyncFuture doesn't support callback function with more than one argument");
-    static_assert(!std::is_same<void, T>::value, "Observe a QFuture<void> but your callback contains a input argument");
-    functor(future);
+    // call() is designed to reduce the no. of annoying compiler error messages.
+    voidCall(functor, future);
     return Value<void>();
 }
 
@@ -668,7 +707,7 @@ template <typename Functor, typename T>
 typename std::enable_if<!ret_type_is_void<Functor>::value && !arg_count_is_zero<Functor>::value,
 Value<RetType<Functor>>>::type
 eval(Functor functor, QFuture<T> future) {
-    return functor(future);
+    return call(functor, future);
 }
 
 /// Create a DeferredFuture will execute the callback functions when observed future finished
@@ -764,6 +803,8 @@ public:
 
         static_assert(Private::arg_count<Completed>::value <= 1, "subscribe(callback): Callback function should not take more than 1 argument");
 
+        static_assert(!(std::is_same<void, T>::value && Private::arg_count<Completed>::value >= 1), "Observe a QFuture<void> but your callback contains a input argument");
+
         return _subscribe<typename Private::function_traits<Completed>::result_type,
                          typename Private::function_traits<Completed>::result_type
                 >(onCompleted, [](){});
@@ -856,7 +897,7 @@ private:
     }
 
     template <typename ObservableType, typename RetType, typename Completed, typename Canceled>
-    Observable<ObservableType> _subscribe(Completed onCompleted, Canceled onCanceled) {
+    Observable<ObservableType> _subscribe(Completed onCompleted, Canceled onCanceled) {       
 
         auto defer = Private::execute<ObservableType, RetType>(m_future,
                                                                0,
