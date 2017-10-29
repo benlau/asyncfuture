@@ -848,16 +848,16 @@ public:
 
     template <typename Functor>
     typename std::enable_if<std::is_same<typename Private::RetType<Functor>, void>::value, void>::type
-    progress(Functor onProgress) {
-        progress([=]() mutable {
-            onProgress();
+    onProgress(Functor functor) {
+        onProgress([=]() mutable {
+            functor();
             return true;
         });
     }
 
     template <typename Functor>
     typename std::enable_if<std::is_same<typename Private::RetType<Functor>,bool>::value, void>::type
-    progress(Functor onProgress) {
+    onProgress(Functor onProgress) {
         QFutureWatcher<T> *watcher = new QFutureWatcher<T>();
 
         auto wrapper = [=]() mutable {

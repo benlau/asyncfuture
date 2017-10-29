@@ -708,7 +708,7 @@ void AsyncFutureTests::test_Observable_progress()
 
     bool inMainThread = false;
 
-    defer.progress([&]() -> bool {
+    defer.onProgress([&]() -> bool {
         count++;
         value = future.progressValue();
         min = future.progressMinimum();
@@ -756,7 +756,7 @@ void AsyncFutureTests::test_Observable_progress()
 
         auto defer = AsyncFuture::deferred<void>();
 
-        defer.progress([=]() mutable -> void {
+        defer.onProgress([=]() mutable -> void {
 
         });
 
