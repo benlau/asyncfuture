@@ -135,6 +135,13 @@ struct ret_type_is_void {
 };
 
 template <typename Functor>
+struct ret_type_is_future {
+    enum {
+        value = future_traits<RetType<Functor>>::is_future
+    };
+};
+
+template <typename Functor>
 struct arg_count_is_zero {
     enum {
         value = (function_traits<Functor>::arity == 0)
@@ -783,9 +790,11 @@ public:
                 >(contextObject, functor);
     }
 
+    /* subscribe function */
+
     template <typename Completed, typename Canceled>
-    typename std::enable_if< !Private::future_traits<typename Private::function_traits<Completed>::result_type>::is_future,
-    Observable<typename Private::function_traits<Completed>::result_type>
+    typename std::enable_if<!Private::ret_type_is_future<Completed>::value,
+    Observable<typename Private::RetType<Completed>>
     >::type
     subscribe(Completed onCompleted,
               Canceled onCanceled) {
@@ -796,8 +805,8 @@ public:
     }
 
     template <typename Completed>
-    typename std::enable_if< !Private::future_traits<typename Private::function_traits<Completed>::result_type>::is_future,
-    Observable<typename Private::function_traits<Completed>::result_type>
+    typename std::enable_if<!Private::ret_type_is_future<Completed>::value,
+    Observable<typename Private::RetType<Completed>>
     >::type
     subscribe(Completed onCompleted) {
 
@@ -812,7 +821,7 @@ public:
 
 
     template <typename Completed, typename Canceled>
-    typename std::enable_if<Private::future_traits<typename Private::function_traits<Completed>::result_type>::is_future,
+    typename std::enable_if<Private::ret_type_is_future<Completed>::value,
     Observable<typename Private::function_traits<Completed>::future_arg_type>
     >::type
     subscribe(Completed onCompleted,
@@ -824,7 +833,7 @@ public:
     }
 
     template <typename Completed>
-    typename std::enable_if<Private::future_traits<typename Private::function_traits<Completed>::result_type>::is_future,
+    typename std::enable_if<Private::ret_type_is_future<Completed>::value,
     Observable<typename Private::function_traits<Completed>::future_arg_type>
     >::type
     subscribe(Completed onCompleted) {
@@ -835,9 +844,10 @@ public:
                 >(onCompleted, [](){});
     }
 
+    /* end of subscribe function */
 
     template <typename Functor>
-    typename std::enable_if<std::is_same<typename Private::function_traits<Functor>::result_type, void>::value, void>::type
+    typename std::enable_if<std::is_same<typename Private::RetType<Functor>, void>::value, void>::type
     progress(Functor onProgress) {
         progress([=]() mutable {
             onProgress();
@@ -846,7 +856,7 @@ public:
     }
 
     template <typename Functor>
-    typename std::enable_if<std::is_same<typename Private::function_traits<Functor>::result_type,bool>::value, void>::type
+    typename std::enable_if<std::is_same<typename Private::RetType<Functor>,bool>::value, void>::type
     progress(Functor onProgress) {
         QFutureWatcher<T> *watcher = new QFutureWatcher<T>();
 
@@ -880,7 +890,6 @@ public:
 
         watcher->setFuture(m_future);
     }
-
 
 private:
     template <typename ObservableType, typename RetType, typename Functor>
