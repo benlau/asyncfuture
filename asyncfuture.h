@@ -635,7 +635,7 @@ public:
 template <typename Functor, typename T>
 typename std::enable_if<ret_type_is_void<Functor>::value && arg_count_is_zero<Functor>::value,
 Value<RetType<Functor>>>::type
-run(Functor functor, QFuture<T> future) {
+eval(Functor functor, QFuture<T> future) {
     Q_UNUSED(future);
     functor();
 
@@ -649,8 +649,9 @@ run(Functor functor, QFuture<T> future) {
 template <typename Functor, typename T>
 typename std::enable_if<ret_type_is_void<Functor>::value && !arg_count_is_zero<Functor>::value,
 Value<RetType<Functor>>>::type
-run(Functor functor, QFuture<T> future) {
+eval(Functor functor, QFuture<T> future) {
     static_assert(arg_count<Functor>::value == 1, "AsyncFuture doesn't support callback function with more than one argument");
+    static_assert(!std::is_same<void, T>::value, "Observe a QFuture<void> but your callback contains a input argument");
     functor(future);
     return Value<void>();
 }
@@ -658,7 +659,7 @@ run(Functor functor, QFuture<T> future) {
 template <typename Functor, typename T>
 typename std::enable_if<!ret_type_is_void<Functor>::value && arg_count_is_zero<Functor>::value,
 Value<RetType<Functor>>>::type
-run(Functor functor, QFuture<T> future) {
+eval(Functor functor, QFuture<T> future) {
     Q_UNUSED(future);
     return functor();
 }
@@ -666,27 +667,9 @@ run(Functor functor, QFuture<T> future) {
 template <typename Functor, typename T>
 typename std::enable_if<!ret_type_is_void<Functor>::value && !arg_count_is_zero<Functor>::value,
 Value<RetType<Functor>>>::type
-run(Functor functor, QFuture<T> future) {
+eval(Functor functor, QFuture<T> future) {
     return functor(future);
 }
-
-/*
-template <typename Functor, typename T>
-typename std::enable_if<!ret_type_is_void<Functor>::value,
-Value<RetType<Functor>>>::type
-run(Functor functor, QFuture<T> future) {
-    auto value = invoke(functor,future);
-    return value;
-}
-
-template <typename Functor, typename T>
-typename std::enable_if<ret_type_is_void<Functor>::value,
-Value<void>>::type
-run(Functor functor, QFuture<T> future) {
-    voidInvoke(functor, future);
-    return Value<void>();
-}
-*/
 
 /// Create a DeferredFuture will execute the callback functions when observed future finished
 /** DeferredType - The template type of the DeferredType
@@ -703,7 +686,7 @@ static DeferredFuture<DeferredType>* execute(QFuture<T> future, QObject* context
     watch(future,
           contextObject,
           contextObject,[=]() {
-        Value<RetType> value = run(onCompleted, future);
+        Value<RetType> value = eval(onCompleted, future);
         defer->complete(value);
     }, [=]() {
         onCanceled();

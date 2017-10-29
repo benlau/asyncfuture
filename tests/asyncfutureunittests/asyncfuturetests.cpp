@@ -222,16 +222,16 @@ void AsyncFutureTests::test_private_run()
     auto vCallbackBool = []() {
     };
 
-    auto value = AsyncFuture::Private::run(iCallbackBool, bFuture);
+    auto value = AsyncFuture::Private::eval(iCallbackBool, bFuture);
     QCOMPARE(value.value, 1);
 
-    value = AsyncFuture::Private::run(iCallbackVoid, bFuture);
+    value = AsyncFuture::Private::eval(iCallbackVoid, bFuture);
     QCOMPARE(value.value, 2);
 
-    value = AsyncFuture::Private::run(iCallbackVoid, vFuture);
+    value = AsyncFuture::Private::eval(iCallbackVoid, vFuture);
     QCOMPARE(value.value, 2);
 
-    AsyncFuture::Private::run(vCallbackBool, bFuture);
+    AsyncFuture::Private::eval(vCallbackBool, bFuture);
 
     auto iCallbackFutureI = [](QFuture<int> future){
         return future.result();
@@ -242,7 +242,7 @@ void AsyncFutureTests::test_private_run()
     d.complete(20);
     QVERIFY(waitUntil(iFuture,1000));
 
-    value = AsyncFuture::Private::run(iCallbackFutureI, iFuture);
+    value = AsyncFuture::Private::eval(iCallbackFutureI, iFuture);
     QCOMPARE(value.value, 20);
 
     //Error statement
