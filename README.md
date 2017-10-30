@@ -3,7 +3,7 @@
 [![Build status](https://ci.appveyor.com/api/projects/status/5cndw1uu5ay960c4?svg=true)](https://ci.appveyor.com/project/benlau/asyncfuture)
 
 
-QFuture is usually used together with QtConcurrent to represent the result of an asynchronous computation. It is a powerful component for multi-thread programming. But its usage is limited to the result of threads. And QtConcurrent only provides MapReduce / FilterReduce model that may not fit your use cases. Moreover, it doesn't work with the asynchronous signal emitted by QObject. And it is a bit trouble to setup the listener function via QFutureWatcher.
+QFuture is used together with QtConcurrent to represent the result of an asynchronous computation. It is a powerful component for multi-thread programming. But its usage is limited to the result of threads, it doesn't work with the asynchronous signal emitted by QObject. And it is a bit trouble to setup the listener function via QFutureWatcher.
 
 AsyncFuture is designed to enhance the function to offer a better way to use it for asynchronous programming. It provides a Promise object like interface. This project is inspired by AsynQt and RxCpp.
 
@@ -16,6 +16,11 @@ Reference Articles
 
 Features
 ========
+
+ 1. Convert a signal from QObject into a QFuture object
+ 2. Combine multiple futures with different type into a single future object
+ 3. Use QFuture like a Promise object
+ 4. Chainable Callback - Advanced multi-threading programming model
 
 **1. Convert a signal from QObject into a QFuture object**
 
@@ -107,7 +112,7 @@ defer.cancel(timeout);
 return defer.future();
 ```
 
-**4. Chainable Future - Advanced multi-threading programming model**
+**4. Chainable Callback - Advanced multi-threading programming model**
 
 Futures can be chained into a sequence of process. And represented by a single future object.
 
@@ -231,6 +236,19 @@ QFuture<QImage> result = (combine(AllSettled) << f1 << f2).subscribe([=](){
 
 Once all the observed futures finished, the contained future will be finished too.  And it will be cancelled immediately if any one of the observed future is cancelled in fail fast mode. In case you wish the cancellation take place after all the futures finished, you should set mode to `AllSettled`.
 
+Since v3.6, you may assign a deferred object to Combinator directly.
+
+Example 
+
+```
+QFuture<QImage> f1 = QtConcurrent::run(readImage, QString("image.jpg"));
+auto defer = deferred<void>();
+
+QFuture<QImage> result = (combine(AllSettled) << f1 << defer).subscribe([=](){
+    // Read an image but do not return before the deferred is completed
+    return f1.result();
+}).future();
+```
 
 AsyncFuture::deferred&lt;T&gt;()
 ----------
