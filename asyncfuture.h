@@ -725,13 +725,13 @@ struct is_callable {
 
 template <typename Functor, typename T>
 typename std::enable_if<is_callable<Functor, T>::value, void>::type
-voidCall(Functor& functor, QFuture<T>& future) {
+callIgnoreReturn(Functor& functor, QFuture<T>& future) {
     functor(future);
 }
 
 template <typename Functor, typename T>
 typename std::enable_if<!is_callable<Functor, T>::value, void>::type
-voidCall(Functor& functor, QFuture<T>& future) {
+callIgnoreReturn(Functor& functor, QFuture<T>& future) {
     Q_UNUSED(functor);
     Q_UNUSED(future);
     static_assert(False<T>::value, "Your callback is not callable. Please validate the input argument type and observed QFuture.");
@@ -767,7 +767,7 @@ typename std::enable_if<ret_type_is_void<Functor>::value && !arg_count_is_zero<F
 Value<RetType<Functor>>>::type
 eval(Functor functor, QFuture<T> future) {
     // call() is designed to reduce the no. of annoying compiler error messages.
-    voidCall(functor, future);
+    callIgnoreReturn(functor, future);
     return Value<void>();
 }
 
