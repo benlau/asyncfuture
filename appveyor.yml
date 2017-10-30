@@ -27,4 +27,4 @@ build_script:
   - release\asyncfutureunittests
   - cd ..\compilererrors
   - qmake
-  - nmake && exit 0
+  - nmake & exit 0
