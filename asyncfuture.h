@@ -734,6 +734,9 @@ typename std::enable_if<!is_callable<Functor, T>::value, void>::type
 callIgnoreReturn(Functor& functor, QFuture<T>& future) {
     Q_UNUSED(functor);
     Q_UNUSED(future);
+    /* Unlike clang, VC 2017 may not instantiate this function if another
+     * static_assert is triggered.
+     */
     static_assert(False<T>::value, "Your callback is not callable. Please validate the input argument type and observed QFuture.");
 }
 

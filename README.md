@@ -197,7 +197,7 @@ See [Observable`<T>`](#observablet)
 AsyncFuture::observe(QFuture&lt;T&gt; future)
 -------------
 
-This function creates an Observable<T> object which provides an interface for observing the input future. See [Observable`<T>`](#observablet)
+This function creates an Observable&lt;T&gt; object which provides an interface for observing the input future. See [Observable`<T>`](#observablet)
 
 ```c++
 // Convert a signal from QObject into QFuture
@@ -274,7 +274,7 @@ See [`Deferred<T>`](#deferredt)
 Observable&lt;T&gt;
 ------------
 
-Observable&lt;T&gt; is a chainable utility class for observing a QFuture object. It is created by the observe() function. It can register multiple callbacks to be triggered in different situations. And that will create a new Observable<T> / QFuture object to represent the result of the callback function. It may even call QtConcurrent::run() within the callback function to run the funciton in another thread. Therefore, it could create a more complex/flexible workflow.
+Observable&lt;T&gt; is a chainable utility class for observing a QFuture object. It is created by the observe() function. It can register multiple callbacks to be triggered in different situations. And that will create a new Observable&lt;T&gt; / QFuture object to represent the result of the callback function. It may even call QtConcurrent::run() within the callback function to run the funciton in another thread. Therefore, it could create a more complex/flexible workflow.
 
 ```
 QFuture<int> future
@@ -290,8 +290,8 @@ Obtain the QFuture object to represent the result.
 
 **Observable&lt;T&gt; Observable&lt;T&gt;::subscribe(Completed onCompleted, Canceled onCanceled)**
 
-    Observable<T> Observable<T>::subscribe(Completed onCompleted);
-    Observable<T> Observable<T>::subscribe(Completed onCompleted, Canceled onCanceled);
+    Observable&lt;T&gt; Observable&lt;T&gt;::subscribe(Completed onCompleted);
+    Observable&lt;T&gt; Observable&lt;T&gt;::subscribe(Completed onCompleted, Canceled onCanceled);
 
 Register a onCompleted and/or onCanceled callback to the observed QFuture object. Unlike the context() function, the callbacks will be triggered as long as the current thread exists. The return value is an Observable<R> object where R is the return type of the onCompleted callback.
 
@@ -334,6 +334,22 @@ QFuture<bool> validating = observe(reading).context(contextObject, validator).fu
 ```
 
 In the above example, the result of `validating` is supposed to be true. However, if the `contextObject` is destroyed before `reading` future finished, it will be cancelled and the result will become undefined.
+
+**void Observable&lt;T&gt;::onProgress(Functor callback)**
+
+Listens the `progressValueChanged` and `progressRangeChanged` signal from the observed futur then trigger the callback. The callback function may not return any thing or a boolean value. If the boolean value is false, it will remove the listener such that the callback may not triggered anymore.
+
+Example
+
+```
+QFuture<int> future = QtConcurrent::mapped(input, workerFunction);
+
+AsyncFuture::observe(future).onProgress([=]() -> bool {
+    qDebug() << future.progressValue();
+});
+```
+
+Added since v0.3.6.4
 
 Completed Callback Funcion
 ---------------
@@ -417,11 +433,11 @@ But there has an exception if you have even called Deferred.complete(`QFuture<T>
 
 Complete this future object with the given arguments
 
-**Deferred&lt;T&gt;::complete(QList<T>)**
+**Deferred&lt;T&gt;::complete(QList&lt;T&gt;)**
 
 Complete the future object with a list of result. User may obtain all the value by QFuture::results().
 
-**Deferred&lt;T&gt;::complete(QFuture<T>)**
+**Deferred&lt;T&gt;::complete(QFuture&lt;T&gt;)**
 
 This future object is deferred to complete/cancel. It will adopt the state from the input future. If the input future is completed, then it will be completed too. That is same for cancel.
 
