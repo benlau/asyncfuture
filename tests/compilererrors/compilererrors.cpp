@@ -7,7 +7,7 @@ using namespace AsyncFuture;
  * instead of reporting confusing compiler errors
  */
 
-#define ENABLED
+//#define ENABLED
 
 // Case 1 - More than 1 argument in callback function
 
@@ -60,7 +60,7 @@ static void case2a() {
 }
 #endif
 
-#if defined(ENABLED)
+#if defined(ENABLED) || 1
 static void case2b() {
     auto defer = Deferred<void>();
     QObject tmp;
