@@ -29,7 +29,7 @@ AsyncFutureTests::AsyncFutureTests(QObject *parent) : QObject(parent)
     Q_UNUSED(ref);
 }
 
-static int test_cancel_worker(int value) {
+static int square(int value) {
     Automator::wait(50);
 
     return value * value;
@@ -42,7 +42,7 @@ void AsyncFutureTests::test_QFuture_cancel()
         input << i;
     }
 
-    QFuture<int> future = QtConcurrent::mapped(input, test_cancel_worker);
+    QFuture<int> future = QtConcurrent::mapped(input, square);
 
     QCOMPARE(future.isRunning(), true);
     QCOMPARE(future.isFinished(), false);
@@ -730,6 +730,27 @@ void AsyncFutureTests::test_Observable_subscribe_return_canceledFuture()
 
     QCOMPARE(sequence, expectedSequence);
 
+}
+
+void AsyncFutureTests::test_Observable_subscribe_return_mappedFuture()
+{
+
+    auto future = observe(QtConcurrent::run([](){})).subscribe([=]() {
+        QList<int> input;
+        input << 1 << 2 << 3;
+        auto ret = QtConcurrent::mapped(input, square);
+        return ret;
+    }).future();
+
+    QVERIFY(waitUntil([&](){
+        return !future.isRunning();
+    }, 1000));
+
+    QCOMPARE(future.progressMaximum(), 3);
+    QList<int> expected;
+    expected << 1 << 4 << 9;
+
+    QCOMPARE(future.results(), expected);
 }
 
 void AsyncFutureTests::test_Observable_onProgress()

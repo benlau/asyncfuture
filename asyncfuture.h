@@ -379,8 +379,7 @@ public:
     void complete(QFuture<T> future) {
         incRefCount();
         auto onFinished = [=]() {
-            Value<T> value(future);
-            this->complete(value);
+            this->completeByFinishedFuture<T>(future);
             this->decRefCount();
         };
 
@@ -394,8 +393,9 @@ public:
               0,
               onFinished,
               onCanceled);
-    }
 
+        track(future);
+    }
 
     void cancel() {
         if (resolved) {
@@ -497,6 +497,26 @@ public:
     template <typename R>
     void reportResult(Value<R>& value) {
         QFutureInterface<T>::reportResult(value.value);
+    }
+
+private:
+
+    /// The future is already finished. It will take effect immediately
+    template <typename ANY>
+    typename std::enable_if<!std::is_same<ANY,void>::value, void>::type
+    completeByFinishedFuture(QFuture<T> future) {
+        if (future.resultCount() > 1) {
+            complete(future.results());
+        } else {
+            complete(future.result());
+        }
+    }
+
+    template <typename ANY>
+    typename std::enable_if<std::is_same<ANY,void>::value, void>::type
+    completeByFinishedFuture(QFuture<T> future) {
+        Q_UNUSED(future);
+        complete();
     }
 
 protected:
@@ -789,7 +809,7 @@ eval(Functor functor, QFuture<T> future) {
     return call(functor, future);
 }
 
-/// Create a DeferredFuture will execute the callback functions when observed future finished
+/// Create a DeferredFuture that will execute the callback functions when observed future finished
 /** DeferredType - The template type of the DeferredType
  *  RetType - The return type of QFuture
  *
@@ -911,7 +931,7 @@ public:
     Observable<typename Private::function_traits<Completed>::future_arg_type>
     >::type
     subscribe(Completed onCompleted) {
-        /* onCompleted returns a QFuture */
+        /* onCompleted returns a QFuture and no onCanceled given */
 
         return _subscribe<typename Private::future_traits<typename Private::function_traits<Completed>::result_type>::arg_type,
                          typename Private::function_traits<Completed>::result_type

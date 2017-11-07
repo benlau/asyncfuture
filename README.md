@@ -346,7 +346,15 @@ QFuture<int> future = QtConcurrent::mapped(input, workerFunction);
 
 AsyncFuture::observe(future).onProgress([=]() -> bool {
     qDebug() << future.progressValue();
+    return true;
 });
+
+// or
+
+AsyncFuture::observe(future).onProgress([=]() -> void {
+    qDebug() << future.progressValue();
+});
+
 ```
 
 Added since v0.3.6.4
