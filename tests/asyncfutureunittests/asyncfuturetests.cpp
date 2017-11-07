@@ -742,9 +742,7 @@ void AsyncFutureTests::test_Observable_subscribe_return_mappedFuture()
         return ret;
     }).future();
 
-    QVERIFY(waitUntil([&](){
-        return !future.isRunning();
-    }, 1000));
+    QTRY_COMPARE(future.isRunning(), false);
 
     QCOMPARE(future.progressMaximum(), 3);
     QList<int> expected;
