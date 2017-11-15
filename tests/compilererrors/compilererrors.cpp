@@ -49,7 +49,7 @@ static void case1c() {  // context - with return
 }
 #endif
 
-// Case 1 - observe a QFuture<void> by a callback with input argument
+// Case 2 - observe a QFuture<void> by a callback with input argument
 #if defined(ENABLED)
 static void case2a() {
     auto defer = Deferred<void>();
@@ -70,6 +70,8 @@ static void case2b() {
     });
 }
 #endif
+
+// Case 3 - the type is mismatched.
 
 #if defined(ENABLED)
 static void case3() {

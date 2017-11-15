@@ -7,6 +7,9 @@
 #include <QCoreApplication>
 #include <functional>
 
+#define ASYNCFUTURE_ERROR_OBSERVE_VOID_WITH_ARGUMENT "Observe a QFuture<void> but your callback contains a input argument"
+#define ASYNCFUTURE_ERROR_CALLBACK_NO_MORE_ONE_ARGUMENT "Callback function should not take more than 1 argument"
+
 namespace AsyncFuture {
 
 /* Naming Convention
@@ -862,25 +865,36 @@ public:
         return m_future;
     }
 
-    template <typename Functor>
-    typename std::enable_if< !Private::future_traits<typename Private::function_traits<Functor>::result_type>::is_future,
-    Observable<typename Private::function_traits<Functor>::result_type>
+    template <typename Completed>
+    typename std::enable_if< !Private::future_traits<typename Private::function_traits<Completed>::result_type>::is_future,
+    Observable<typename Private::function_traits<Completed>::result_type>
     >::type
-    context(QObject* contextObject, Functor functor)  {
+    context(QObject* contextObject, Completed functor)  {
+
+        static_assert(Private::function_traits<Completed>::arity <= 1, "context(object, callback): Callback should take not more than one parameter");
+
+        static_assert(!(std::is_same<void, T>::value && Private::arg_count<Completed>::value >= 1), "context(object, callback): " ASYNCFUTURE_ERROR_OBSERVE_VOID_WITH_ARGUMENT);
+
+
         /* functor return non-QFuture type */
-        return _context<typename Private::function_traits<Functor>::result_type,
-                       typename Private::function_traits<Functor>::result_type
+        return _context<typename Private::function_traits<Completed>::result_type,
+                       typename Private::function_traits<Completed>::result_type
                 >(contextObject, functor);
     }
 
-    template <typename Functor>
-    typename std::enable_if< Private::future_traits<typename Private::function_traits<Functor>::result_type>::is_future,
-    Observable<typename Private::future_traits<typename Private::function_traits<Functor>::result_type>::arg_type>
+    template <typename Completed>
+    typename std::enable_if< Private::future_traits<typename Private::function_traits<Completed>::result_type>::is_future,
+    Observable<typename Private::future_traits<typename Private::function_traits<Completed>::result_type>::arg_type>
     >::type
-    context(QObject* contextObject, Functor functor)  {
+    context(QObject* contextObject, Completed functor)  {
+
+        static_assert(Private::function_traits<Completed>::arity <= 1, "context(object, callback): Callback should take not more than one parameter");
+
+        static_assert(!(std::is_same<void, T>::value && Private::arg_count<Completed>::value >= 1), "context(object, callback): " ASYNCFUTURE_ERROR_OBSERVE_VOID_WITH_ARGUMENT);
+
         /* functor returns a QFuture */
-        return _context<typename Private::future_traits<typename Private::function_traits<Functor>::result_type>::arg_type,
-                       typename Private::function_traits<Functor>::result_type
+        return _context<typename Private::future_traits<typename Private::function_traits<Completed>::result_type>::arg_type,
+                       typename Private::function_traits<Completed>::result_type
                 >(contextObject, functor);
     }
 
@@ -892,6 +906,11 @@ public:
     >::type
     subscribe(Completed onCompleted,
               Canceled onCanceled) {
+
+        static_assert(Private::arg_count<Completed>::value <= 1, "subscribe(callback): " ASYNCFUTURE_ERROR_CALLBACK_NO_MORE_ONE_ARGUMENT);
+
+        static_assert(!(std::is_same<void, T>::value && Private::arg_count<Completed>::value >= 1), "subscribe(callback): " ASYNCFUTURE_ERROR_OBSERVE_VOID_WITH_ARGUMENT);
+
         /* For functor return a regular value */
         return _subscribe<typename Private::function_traits<Completed>::result_type,
                          typename Private::function_traits<Completed>::result_type
@@ -904,9 +923,9 @@ public:
     >::type
     subscribe(Completed onCompleted) {
 
-        static_assert(Private::arg_count<Completed>::value <= 1, "subscribe(callback): Callback function should not take more than 1 argument");
+        static_assert(Private::arg_count<Completed>::value <= 1, "subscribe(callback): " ASYNCFUTURE_ERROR_CALLBACK_NO_MORE_ONE_ARGUMENT);
 
-        static_assert(!(std::is_same<void, T>::value && Private::arg_count<Completed>::value >= 1), "Observe a QFuture<void> but your callback contains a input argument");
+        static_assert(!(std::is_same<void, T>::value && Private::arg_count<Completed>::value >= 1), "subscribe(callback): " ASYNCFUTURE_ERROR_OBSERVE_VOID_WITH_ARGUMENT);
 
         return _subscribe<typename Private::function_traits<Completed>::result_type,
                          typename Private::function_traits<Completed>::result_type
@@ -986,10 +1005,8 @@ public:
     }
 
 private:
-    template <typename ObservableType, typename RetType, typename Functor>
-    Observable<ObservableType> _context(QObject* contextObject, Functor functor)  {
-
-        static_assert(Private::function_traits<Functor>::arity <= 1, "context(): Callback should take not more than one parameter");
+    template <typename ObservableType, typename RetType, typename Completed>
+    Observable<ObservableType> _context(QObject* contextObject, Completed functor)  {
 
         auto defer = Private::execute<ObservableType, RetType>(m_future,
                                                                contextObject,
