@@ -536,6 +536,7 @@ void AsyncFutureTests::test_Observable_signal_by_signature()
 {
 
     {
+        // Observe a signal with no argument
         auto proxy = new SignalProxy(this);
 
         QFuture<void> vFuture = observe(proxy, SIGNAL(proxy0())).future();
@@ -559,6 +560,7 @@ void AsyncFutureTests::test_Observable_signal_by_signature()
     }
 
     {
+        // Observe a sigal without argument
         auto *proxy = new SignalProxy(this);
 
         QFuture<QVariant> iFuture = observe(proxy, SIGNAL(proxy1(int))).future();
@@ -580,6 +582,17 @@ void AsyncFutureTests::test_Observable_signal_by_signature()
         QCOMPARE(iFuture.isFinished(), true);
         QCOMPARE(iFuture.isRunning(), false);
         QCOMPARE(iFuture.result().toInt(), 5);
+
+        delete proxy;
+    }
+
+    {
+        // invalid signature
+
+        auto *proxy = new SignalProxy(this);
+
+        QFuture<QVariant> iFuture = observe(proxy, SIGNAL(noSuchSignal())).future();
+        Q_UNUSED(iFuture);
 
         delete proxy;
     }
