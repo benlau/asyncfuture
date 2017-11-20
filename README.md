@@ -402,6 +402,25 @@ QFuture<int> f2 = observe(f1).context(contextObject, [=](QFuture<int> future) {
 
 ```
 
+Callback Chain Cancelation
+----
+
+A chain can be canceled by returning a canceled QFuture.
+
+Example:
+
+```c++
+auto f2 = observe(f1).subscribe([=]() {
+  auto defer = Deferred<void>();
+  defer.cancel();
+  return defer.future();
+}).future();
+
+observe(f2).subscribe([=]() {
+  // it won't be executed.
+});
+```
+
 
 Deferred&lt;T&gt;
 -----------
