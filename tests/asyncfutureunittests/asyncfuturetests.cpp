@@ -21,6 +21,26 @@ QFuture<T> finishedFuture(T value) {
     return o.future();
 }
 
+template <typename T>
+inline void await(QFuture<T> future, int timeout = -1) {
+    if (future.isFinished()) {
+        return;
+    }
+
+    QFutureWatcher<T> watcher;
+    watcher.setFuture(future);
+    QEventLoop loop;
+
+    if (timeout > 0) {
+        QTimer::singleShot(timeout, &loop, &QEventLoop::quit);
+    }
+
+    QObject::connect(&watcher, SIGNAL(finished()), &loop, SLOT(quit()));
+
+    loop.exec();
+}
+
+
 AsyncFutureTests::AsyncFutureTests(QObject *parent) : QObject(parent)
 {
     auto ref = [=]() {
@@ -146,6 +166,62 @@ void AsyncFutureTests::test_QFutureWatcher_in_thread()
         QVERIFY(called == true);
         delete watcher;
     }
+}
+
+void AsyncFutureTests::test_QtConcurrent_map()
+{
+    QSemaphore semaphore(1);
+
+    auto worker = [&](int i) {
+        Q_UNUSED(i);
+        semaphore.acquire();
+        Automator::wait(10);
+        semaphore.release();
+    };
+
+    QThreadPool pool;
+    pool.setMaxThreadCount(1);
+
+    QFuture<void> future;
+    QFutureWatcher<void> watcher;
+    semaphore.acquire();
+
+    QList<int> input;
+    input << 0 << 1 << 2;
+
+    future = QtConcurrent::map(input , worker);
+    watcher.setFuture(future);
+    bool started = false;
+    bool paused = false;
+    bool resumed = false;
+
+    connect(&watcher, &QFutureWatcher<void>::started, [&]() {
+        started = true;
+    });
+
+    connect(&watcher, &QFutureWatcher<void>::paused, [&]() {
+        paused = true;
+    });
+
+    connect(&watcher, &QFutureWatcher<void>::resumed, [&]() {
+        resumed = true;
+    });
+
+    QTRY_COMPARE(started, true);
+    QTRY_COMPARE(paused, false);
+    QTRY_COMPARE(resumed, false);
+
+    future.pause();
+
+    QEXPECT_FAIL("", "It can't really pause the execution of QtConcurrent::map", Continue);
+    QTRY_COMPARE_WITH_TIMEOUT(paused, true, 300);
+    QTRY_COMPARE(resumed, false);
+
+    /// Without resume, it can't emit finished signal
+    future.resume();
+
+    semaphore.release();
+    await(future);
 }
 
 #define TYPEOF(x) std::decay<decltype(x)>::type

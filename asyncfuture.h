@@ -276,7 +276,7 @@ void watch(QFuture<T> future,
 
 /* DeferredFuture implements a QFutureInterface that could complete/cancel a QFuture.
  *
- * 1) It is private class that won't export to public
+ * 1) It is a private class that won't export to public
  *
  * 2) Its member function do not use <T> to avoid to use template specialization to handle <void>. Type checking should be done by user classes (e.g Deferred)
  *
