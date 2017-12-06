@@ -72,6 +72,8 @@ private slots:
     void test_Deferred_across_thread();
     void test_Deferred_inherit();
     void test_Deferred_track();
+    void test_Deferred_track_started();
+
     void test_Deferred_setProgress();
 
     void test_Combinator();

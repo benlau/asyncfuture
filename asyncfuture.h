@@ -320,6 +320,10 @@ public:
             thiz->setProgressRange(min, max);
         });
 
+        QObject::connect(watcher, &QFutureWatcher<ANY>::started, [=](){
+            thiz->reportStarted();
+        });
+
         watcher->setFuture(future);
 
         QFutureInterface<T>::setProgressRange(future.progressMinimum(), future.progressMaximum());
