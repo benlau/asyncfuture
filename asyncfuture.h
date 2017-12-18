@@ -324,6 +324,14 @@ public:
             thiz->reportStarted();
         });
 
+        QObject::connect(watcher, &QFutureWatcher<ANY>::paused, [=](){
+            thiz->setPaused(true);
+        });
+
+        QObject::connect(watcher, &QFutureWatcher<ANY>::resumed, [=](){
+            thiz->setPaused(false);
+        });
+
         watcher->setFuture(future);
 
         QFutureInterface<T>::setProgressRange(future.progressMinimum(), future.progressMaximum());
