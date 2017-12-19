@@ -347,7 +347,8 @@ QFuture<T> mapped(Sequence input, Functor func){
     return defer.future();
 }
 
-void Example::example_qtconcurrent_mapped()
+/// To simulate a QtConcurrent::mapped
+void Example::example_simulate_qtconcurrent_mapped()
 {
     auto worker = [=](int value) {
         Automator::wait(10);
@@ -369,6 +370,84 @@ void Example::example_qtconcurrent_mapped()
     QList<int> result = future.results();
 
     QVERIFY(result == expected);
+}
+
+static QMutex semaphoreWorkerMutex;
+static int semaphoreWorkerRunningCount = 0;
+static int semaphoreWorkerFinishedCount = 0;
+static QSemaphore internalSemaphore(1);
+
+static int semaphoreWorker(int value) {
+    semaphoreWorkerMutex.lock();
+    semaphoreWorkerRunningCount++;
+    semaphoreWorkerMutex.unlock();
+    internalSemaphore.acquire();
+    semaphoreWorkerMutex.lock();
+    semaphoreWorkerFinishedCount++;
+    semaphoreWorkerMutex.unlock();
+    internalSemaphore.release();
+    return value;
+}
+
+void Example::example_qtconcurrent_mapped_cancel()
+{
+    //@TODO - It need an improved cancellation token mechanism
+
+    semaphoreWorkerRunningCount = 0;
+    semaphoreWorkerFinishedCount = 0;
+    internalSemaphore.acquire(1);
+
+    int count = QThreadPool::globalInstance()->maxThreadCount() * 2;
+
+    // The input size should be double than the no. of thread available in QThreadPool
+    QList<int> input;
+
+    for (int i = 0 ;i < count;i++) {
+        input << i;
+    }
+
+    auto cancelToken = deferred<void>();
+
+    auto f1 = timeout(100);
+
+    auto f2 = observe(f1).subscribe([&](){
+        auto future = QtConcurrent::mapped(input, semaphoreWorker);
+        cancelToken.subscribe([](){}, [=]() {
+            auto f = future;
+            f.cancel();
+        });
+
+        return future;
+    }).future();
+
+    observe(f2).subscribe([](){}, [=]() {
+        auto d = cancelToken;
+        d.cancel();
+    });
+
+    await(f1);
+
+    // Wait until all the thread are blocked;
+    // QtConcurrent::mapped coult not take QThreadPool as input argument.
+    Automator::wait(1000);
+
+    QVERIFY(semaphoreWorkerRunningCount > 0);
+    QCOMPARE(semaphoreWorkerFinishedCount, 0);
+    int runningCount = semaphoreWorkerRunningCount;
+
+    // Cancel f2. No more worker should be executed
+    f2.cancel();
+
+    Automator::wait(100);
+
+    internalSemaphore.release();
+
+    QTRY_COMPARE(semaphoreWorkerFinishedCount, runningCount);
+    Automator::wait(100);
+
+    QCOMPARE(semaphoreWorkerRunningCount, runningCount);
+    QCOMPARE(semaphoreWorkerFinishedCount, runningCount);
+
 }
 
 template <typename Functor, typename Token>
