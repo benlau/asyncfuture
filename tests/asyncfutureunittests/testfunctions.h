@@ -80,7 +80,8 @@ namespace Test {
 
         runOnMainThread([=]() {
             QTimer::singleShot(value, [=]() mutable {
-                defer.complete();
+                auto d = defer;
+                d.complete();
             });
         });
 
