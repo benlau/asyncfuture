@@ -6,8 +6,10 @@
 #include <QTimer>
 #include "example.h"
 #include "testfunctions.h"
+#include "asyncfutureutils.h"
 
 using namespace AsyncFuture;
+using namespace AsyncFutureUtils;
 using namespace Test;
 
 Example::Example(QObject *parent) : QObject(parent)

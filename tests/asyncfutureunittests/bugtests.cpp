@@ -2,10 +2,12 @@
 #include <Automator>
 #include <QtConcurrent>
 #include <asyncfuture.h>
+#include "asyncfutureutils.h"
 #include "testfunctions.h"
 #include "bugtests.h"
 
 using namespace AsyncFuture;
+using namespace AsyncFutureUtils;
 using namespace Test;
 
 BugTests::BugTests(QObject *parent) : QObject(parent)
@@ -69,8 +71,8 @@ void BugTests::test_nested_subscribe_in_thread()
     bool called = false;
 
     auto worker = [&]() {
-        observe(Test::timeout(50)).subscribe([]() {
-            return Test::timeout(50);
+        observe(timeout(50)).subscribe([]() {
+            return timeout(50);
         }).subscribe([&]() {
             called = true;
         });

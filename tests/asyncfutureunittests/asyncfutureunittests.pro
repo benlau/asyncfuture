@@ -31,5 +31,6 @@ HEADERS += \
     example.h \
     asyncfuturetests.h \
     testfunctions.h \
-    bugtests.h
+    bugtests.h \
+    asyncfutureutils.h
 

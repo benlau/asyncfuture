@@ -7,8 +7,10 @@
 #include "testfunctions.h"
 #include "asyncfuture.h"
 #include "asyncfuturetests.h"
+#include "asyncfutureutils.h"
 
 using namespace AsyncFuture;
+using namespace AsyncFutureUtils;
 using namespace Test;
 
 template <typename T>
@@ -86,7 +88,7 @@ void AsyncFutureTests::test_QFutureWatcher_in_thread()
 
         auto worker = [&]() {
              watcher = new QFutureWatcher<void>();
-             future = Test::timeout(50);
+             future = timeout(50);
              QObject::connect(watcher, &QFutureWatcher<void>::finished, [&]() {
                  called = true;
              });

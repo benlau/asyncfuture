@@ -68,25 +68,6 @@ namespace Test {
         tick();
     }
 
-     template <typename Functor>
-     inline void runOnMainThread(Functor func) {
-         QObject tmp;
-         QObject::connect(&tmp, &QObject::destroyed, QCoreApplication::instance(), func, Qt::QueuedConnection);
-     }
-
-    inline
-    QFuture<void> timeout(int value) {
-        auto defer = AsyncFuture::deferred<void>();
-
-        runOnMainThread([=]() {
-            QTimer::singleShot(value, [=]() mutable {
-                auto d = defer;
-                d.complete();
-            });
-        });
-
-        return defer.future();
-    }
 
     template <typename T>
     inline void await(QFuture<T> future, int timeout = -1) {
