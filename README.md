@@ -478,9 +478,9 @@ This future object is deferred to cancel according to the input future. Once it 
 
 **Deferred&lt;T&gt;::track(QFuture target)**
 
-Track the progress of the target future object.
+Track the progress and synchronize the status of the target future object.
 
-It will listen the `progressValueChanged` from the target future object and synchronize the value of `progressMinimum` and `progressMaximum`.
+It will forward the signal of `started` , `resumed` , `paused` . And synchonize  the `progressValue`, `progressMinimum` and `progressMaximum` value by listening the  `progressValueChanged` signal from target future object.
 
 Remarks: It won't complete a future even the `progressValue` has been reached the maximum value.
 
