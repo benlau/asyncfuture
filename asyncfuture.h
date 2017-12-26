@@ -13,7 +13,11 @@
 
 #define ASYNC_FUTURE_CALLBACK_STATIC_ASSERT(Tag, Completed) \
     static_assert(Private::arg_count<Completed>::value <= 1, Tag ASYNCFUTURE_ERROR_CALLBACK_NO_MORE_ONE_ARGUMENT); \
-    static_assert(!(std::is_same<void, T>::value && Private::arg_count<Completed>::value >= 1), Tag ASYNCFUTURE_ERROR_OBSERVE_VOID_WITH_ARGUMENT);
+    static_assert(!(std::is_same<void, T>::value && Private::arg_count<Completed>::value >= 1), Tag ASYNCFUTURE_ERROR_OBSERVE_VOID_WITH_ARGUMENT); \
+    static_assert( std::is_same<T, Private::Arg0Type<Completed>>::value || \
+                   Private::arg0_is_future<Completed>::value || \
+                   std::is_same<void, Private::Arg0Type<Completed>>::value, Tag ASYNCFUTURE_ERROR_ARGUMENT_MISMATCHED);
+
 
 namespace AsyncFuture {
 
