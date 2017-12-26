@@ -11,6 +11,10 @@
 #define ASYNCFUTURE_ERROR_CALLBACK_NO_MORE_ONE_ARGUMENT "Callback function should not take more than 1 argument"
 #define ASYNCFUTURE_ERROR_ARGUMENT_MISMATCHED "The callback function is not callable. The input argument doesn't match with the observing QFutuer type"
 
+#define ASYNC_FUTURE_CALLBACK_STATIC_ASSERT(Tag, Completed) \
+    static_assert(Private::arg_count<Completed>::value <= 1, Tag ASYNCFUTURE_ERROR_CALLBACK_NO_MORE_ONE_ARGUMENT); \
+    static_assert(!(std::is_same<void, T>::value && Private::arg_count<Completed>::value >= 1), Tag ASYNCFUTURE_ERROR_OBSERVE_VOID_WITH_ARGUMENT);
+
 namespace AsyncFuture {
 
 /* Naming Convention
@@ -142,6 +146,13 @@ template <typename Functor>
 struct ret_type_is_future {
     enum {
         value = future_traits<RetType<Functor>>::is_future
+    };
+};
+
+template <typename Functor>
+struct arg0_is_future {
+    enum {
+        value = future_traits<Arg0Type<Functor>>::is_future
     };
 };
 
@@ -883,13 +894,10 @@ public:
     Observable<typename Private::function_traits<Completed>::result_type>
     >::type
     context(QObject* contextObject, Completed functor)  {
-
-        static_assert(Private::function_traits<Completed>::arity <= 1, "context(object, callback): " ASYNCFUTURE_ERROR_CALLBACK_NO_MORE_ONE_ARGUMENT);
-
-        static_assert(!(std::is_same<void, T>::value && Private::arg_count<Completed>::value >= 1), "context(object, callback): " ASYNCFUTURE_ERROR_OBSERVE_VOID_WITH_ARGUMENT);
-
-
         /* functor return non-QFuture type */
+
+        ASYNC_FUTURE_CALLBACK_STATIC_ASSERT("context(callback): ", Completed);
+
         return _context<typename Private::function_traits<Completed>::result_type,
                        typename Private::function_traits<Completed>::result_type
                 >(contextObject, functor);
@@ -900,12 +908,10 @@ public:
     Observable<typename Private::future_traits<typename Private::function_traits<Completed>::result_type>::arg_type>
     >::type
     context(QObject* contextObject, Completed functor)  {
-
-        static_assert(Private::function_traits<Completed>::arity <= 1, "context(object, callback): " ASYNCFUTURE_ERROR_CALLBACK_NO_MORE_ONE_ARGUMENT);
-
-        static_assert(!(std::is_same<void, T>::value && Private::arg_count<Completed>::value >= 1), "context(object, callback): " ASYNCFUTURE_ERROR_OBSERVE_VOID_WITH_ARGUMENT);
-
         /* functor returns a QFuture */
+
+        ASYNC_FUTURE_CALLBACK_STATIC_ASSERT("context(callback): ", Completed);
+
         return _context<typename Private::future_traits<typename Private::function_traits<Completed>::result_type>::arg_type,
                        typename Private::function_traits<Completed>::result_type
                 >(contextObject, functor);
@@ -919,12 +925,10 @@ public:
     >::type
     subscribe(Completed onCompleted,
               Canceled onCanceled) {
-
-        static_assert(Private::arg_count<Completed>::value <= 1, "subscribe(callback): " ASYNCFUTURE_ERROR_CALLBACK_NO_MORE_ONE_ARGUMENT);
-
-        static_assert(!(std::is_same<void, T>::value && Private::arg_count<Completed>::value >= 1), "subscribe(callback): " ASYNCFUTURE_ERROR_OBSERVE_VOID_WITH_ARGUMENT);
-
         /* For functor return a regular value */
+
+        ASYNC_FUTURE_CALLBACK_STATIC_ASSERT("subscribe(callback): ", Completed);
+
         return _subscribe<typename Private::function_traits<Completed>::result_type,
                          typename Private::function_traits<Completed>::result_type
                 >(onCompleted, onCanceled);
@@ -935,10 +939,9 @@ public:
     Observable<typename Private::RetType<Completed>>
     >::type
     subscribe(Completed onCompleted) {
+        /* For functor return a regular value and onCanceled is missed */
 
-        static_assert(Private::arg_count<Completed>::value <= 1, "subscribe(callback): " ASYNCFUTURE_ERROR_CALLBACK_NO_MORE_ONE_ARGUMENT);
-
-        static_assert(!(std::is_same<void, T>::value && Private::arg_count<Completed>::value >= 1), "subscribe(callback): " ASYNCFUTURE_ERROR_OBSERVE_VOID_WITH_ARGUMENT);
+        ASYNC_FUTURE_CALLBACK_STATIC_ASSERT("subscribe(callback): ", Completed);
 
         return _subscribe<typename Private::function_traits<Completed>::result_type,
                          typename Private::function_traits<Completed>::result_type
@@ -953,6 +956,9 @@ public:
     subscribe(Completed onCompleted,
               Canceled onCanceled) {
         /* onCompleted returns a QFuture */
+
+        ASYNC_FUTURE_CALLBACK_STATIC_ASSERT("subscribe(callback): ", Completed);
+
         return _subscribe<typename Private::future_traits<typename Private::function_traits<Completed>::result_type>::arg_type,
                          typename Private::function_traits<Completed>::result_type
                 >(onCompleted, onCanceled);
@@ -964,6 +970,8 @@ public:
     >::type
     subscribe(Completed onCompleted) {
         /* onCompleted returns a QFuture and no onCanceled given */
+
+        ASYNC_FUTURE_CALLBACK_STATIC_ASSERT("subscribe(callback): ", Completed);
 
         return _subscribe<typename Private::future_traits<typename Private::function_traits<Completed>::result_type>::arg_type,
                          typename Private::function_traits<Completed>::result_type
