@@ -130,11 +130,35 @@ struct signal_traits<R (C::*)(ARG0)> {
     typedef ARG0 result_type;
 };
 
+template <typename T>
+struct arg0_traits : public arg0_traits<decltype(&T::operator())> {
+};
+
+template <typename C, typename R>
+struct arg0_traits<R(C::*)() const> {
+    typedef void result_type;
+};
+
+template <typename C, typename R>
+struct arg0_traits<R(C::*)()> {
+    typedef void result_type;
+};
+
+template <typename C, typename R, typename Arg0, typename ...Args>
+struct arg0_traits<R(C::*)(Arg0, Args...) const> {
+    typedef Arg0 result_type;
+};
+
+template <typename C, typename R, typename Arg0, typename ...Args>
+struct arg0_traits<R(C::*)(Arg0, Args...)> {
+    typedef Arg0 result_type;
+};
+
 template <typename Functor>
 using RetType = typename function_traits<Functor>::result_type;
 
 template <typename Functor>
-using Arg0Type = typename function_traits<Functor>::template arg<0>::type;
+using Arg0Type = typename arg0_traits<Functor>::result_type;
 
 template <typename Functor>
 struct ret_type_is_void {
