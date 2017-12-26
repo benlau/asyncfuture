@@ -9,6 +9,7 @@
 
 #define ASYNCFUTURE_ERROR_OBSERVE_VOID_WITH_ARGUMENT "Observe a QFuture<void> but your callback contains a input argument"
 #define ASYNCFUTURE_ERROR_CALLBACK_NO_MORE_ONE_ARGUMENT "Callback function should not take more than 1 argument"
+#define ASYNCFUTURE_ERROR_ARGUMENT_MISMATCHED "The callback function is not callable. The input argument doesn't match with the observing QFutuer type"
 
 namespace AsyncFuture {
 
@@ -772,7 +773,7 @@ callIgnoreReturn(Functor& functor, QFuture<T>& future) {
     /* Unlike clang, VC 2017 may not instantiate this function if another
      * static_assert is triggered.
      */
-    static_assert(False<T>::value, "Your callback is not callable. Please validate the input argument type and observed QFuture.");
+    static_assert(False<T>::value, ASYNCFUTURE_ERROR_ARGUMENT_MISMATCHED);
 }
 
 template <typename Functor, typename T>
@@ -786,7 +787,7 @@ typename std::enable_if<!is_callable<Functor, T>::value, RetType<Functor>>::type
 call(Functor& functor, QFuture<T>& future) {
     Q_UNUSED(functor);
     Q_UNUSED(future);
-    static_assert(False<T>::value, "Your callback is not callable. Please validate the input argument type and observed QFuture.");
+    static_assert(False<T>::value, ASYNCFUTURE_ERROR_ARGUMENT_MISMATCHED);
 }
 
 /* eval() : Evaluate the expression - "return functor(future)" that may have a void return type */
@@ -883,7 +884,7 @@ public:
     >::type
     context(QObject* contextObject, Completed functor)  {
 
-        static_assert(Private::function_traits<Completed>::arity <= 1, "context(object, callback): Callback should take not more than one parameter");
+        static_assert(Private::function_traits<Completed>::arity <= 1, "context(object, callback): " ASYNCFUTURE_ERROR_CALLBACK_NO_MORE_ONE_ARGUMENT);
 
         static_assert(!(std::is_same<void, T>::value && Private::arg_count<Completed>::value >= 1), "context(object, callback): " ASYNCFUTURE_ERROR_OBSERVE_VOID_WITH_ARGUMENT);
 
@@ -900,7 +901,7 @@ public:
     >::type
     context(QObject* contextObject, Completed functor)  {
 
-        static_assert(Private::function_traits<Completed>::arity <= 1, "context(object, callback): Callback should take not more than one parameter");
+        static_assert(Private::function_traits<Completed>::arity <= 1, "context(object, callback): " ASYNCFUTURE_ERROR_CALLBACK_NO_MORE_ONE_ARGUMENT);
 
         static_assert(!(std::is_same<void, T>::value && Private::arg_count<Completed>::value >= 1), "context(object, callback): " ASYNCFUTURE_ERROR_OBSERVE_VOID_WITH_ARGUMENT);
 
