@@ -34,3 +34,6 @@ HEADERS += \
     bugtests.h \
     asyncfutureutils.h
 
+!win32 {
+    QMAKE_CXXFLAGS += -Werror
+}

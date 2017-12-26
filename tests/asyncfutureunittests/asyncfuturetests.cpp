@@ -216,12 +216,16 @@ void AsyncFutureTests::test_function_traits()
     auto func1 = []() {
     };
 
+    Q_UNUSED(func1);
+
     QVERIFY(Private::function_traits<TYPEOF(func1)>::result_type_is_future == 0);
     QVERIFY((std::is_same<Private::function_traits<TYPEOF(func1)>::future_arg_type, void>::value) == 1);
 
     auto func2 = []() -> QFuture<int> {
         return QFuture<int>();
     };
+
+    Q_UNUSED(func2);
 
     QVERIFY(Private::function_traits<TYPEOF(func2)>::result_type_is_future == true);
     QVERIFY((std::is_same<Private::function_traits<TYPEOF(func2)>::future_arg_type, void>::value) == 0);
@@ -231,12 +235,15 @@ void AsyncFutureTests::test_function_traits()
         return QFuture<void>();
     };
 
+    Q_UNUSED(func3);
+
     QVERIFY(Private::function_traits<TYPEOF(func3)>::result_type_is_future == true);
     QVERIFY((std::is_same<Private::function_traits<TYPEOF(func3)>::future_arg_type, void>::value) == 1);
 
     auto func4 = [=](bool) mutable -> void  {
         dummy++;
     };
+    Q_UNUSED(func4);
 
     QVERIFY((std::is_same<Private::function_traits<TYPEOF(func4)>::template arg<0>::type, bool>::value) == 1);
 

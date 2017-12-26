@@ -117,6 +117,7 @@ struct function_traits<ReturnType(ClassType::*)(Args...)>
 
 template <typename T>
 struct signal_traits {
+    // Match class member function only
 };
 
 template <typename R, typename C>
@@ -164,6 +165,13 @@ struct arg_count_is_zero {
 };
 
 template <typename Functor>
+struct arg_count_is_not_zero {
+    enum {
+        value = (function_traits<Functor>::arity > 0)
+    };
+};
+
+template <typename Functor>
 struct arg_count_is_one {
     enum {
         value = (function_traits<Functor>::arity == 1)
@@ -174,6 +182,20 @@ template <typename Functor>
 struct arg_count {
     enum {
         value = function_traits<Functor>::arity
+    };
+};
+
+
+template<typename T>
+struct False : std::false_type {
+};
+
+template< typename Functor, typename T>
+struct is_callable {
+    enum {
+        value = (arg_count<Functor>::value == 1) &&
+                (!std::is_same<void, T>::value) &&
+                (std::is_convertible<Arg0Type<Functor>, T>::value)
     };
 };
 
@@ -757,19 +779,6 @@ public:
 
 /* call() : Run functor(future):void */
 
-template<typename T>
-struct False : std::false_type {
-};
-
-template< typename Functor, typename T>
-struct is_callable {
-    enum {
-        value = (arg_count<Functor>::value == 1) &&
-                (!std::is_same<void, T>::value) &&
-                (std::is_convertible<Arg0Type<Functor>, T>::value)
-    };
-};
-
 template <typename Functor, typename T>
 typename std::enable_if<is_callable<Functor, T>::value, void>::type
 callIgnoreReturn(Functor& functor, QFuture<T>& future) {
@@ -816,7 +825,7 @@ template <typename Functor, typename T>
 typename std::enable_if<ret_type_is_void<Functor>::value && !arg_count_is_zero<Functor>::value,
 Value<RetType<Functor>>>::type
 eval(Functor functor, QFuture<T> future) {
-    // call() is designed to reduce the no. of annoying compiler error messages.
+    // callIgnoreReturn() is designed to reduce the no. of annoying compiler error messages.
     callIgnoreReturn(functor, future);
     return Value<void>();
 }
