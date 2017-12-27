@@ -2,6 +2,7 @@
 #define ASYNCFUTUREUTILS_H
 
 #include <asyncfuture.h>
+#include <QTimer>
 
 // Not part of the AsyncFuture, but user may c&p the code to their program
 

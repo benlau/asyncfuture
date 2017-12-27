@@ -398,6 +398,14 @@ public:
 
         QFutureInterface<T>::setProgressRange(future.progressMinimum(), future.progressMaximum());
         QFutureInterface<T>::setProgressValue(future.progressValue());
+
+        if (future.isStarted()) {
+            QFutureInterface<T>::reportStarted();
+        }
+
+        if (future.isPaused()) {
+            QFutureInterface<T>::setPaused(true);
+        }
     }
 
     // complete<void>()

@@ -5,6 +5,7 @@
 #include "example.h"
 #include "asyncfuturetests.h"
 #include "bugtests.h"
+#include "samplecode.h"
 
 #if defined(Q_OS_MAC) || defined(Q_OS_LINUX)
 #include <execinfo.h>
@@ -46,6 +47,7 @@ int main(int argc, char *argv[])
     runner.add<AsyncFutureTests>();
     runner.add<BugTests>();
     runner.add<Example>();
+    runner.add<SampleCode>();
 
     bool error = runner.exec(app.arguments());
 
