@@ -16,9 +16,29 @@ SampleCode::SampleCode(QObject *parent) : QObject(parent)
     Q_UNUSED(ref);
 }
 
-static QImage readImage(const QString& source) {
-    Q_UNUSED(source);
+static QImage readImage(const QString& src) {
+    Q_UNUSED(src);
     return QImage();
+}
+
+static QStringList findImageFiles(const QString& src) {
+    Q_UNUSED(src);
+    QStringList res;
+    res << "1" << "2" << "3";
+    return res;
+}
+
+static QFuture<QImage> readImageFromFolder(const QString& folder) {
+    auto defer = AsyncFuture::deferred<QImage>();
+
+    auto worker = [=]() mutable {
+        QStringList files = findImageFiles(folder);
+        defer.complete(QtConcurrent::mapped(files, readImage));
+    };
+
+    QtConcurrent::run(worker);
+
+    return defer.future();
 }
 
 void SampleCode::v0_4_release_note()
@@ -40,13 +60,30 @@ void SampleCode::v0_4_release_note()
         /* End of Sample code */
 
         await(defer.future());
-        Automator::wait(10);
-
         auto future = defer.future();
 
         QCOMPARE(input.isStarted(), true);
 
         QCOMPARE(future.progressValue(), files.size());
         QCOMPARE(future.isStarted(), true);
+
+        QList<QImage> result = future.results();
+        QCOMPARE(result.size(), files.size());
+    }
+
+    {
+        QString input;
+        // Sample code 2
+
+        auto future = readImageFromFolder(input);
+        QVERIFY(!future.isFinished());
+        await(future);
+        Automator::wait(100);
+
+        QCOMPARE(future.progressValue(), 3);
+//        QCOMPARE(future.isStarted(), true);
+
+        QList<QImage> result = future.results();
+        QCOMPARE(result.size(), 3);
     }
 }
