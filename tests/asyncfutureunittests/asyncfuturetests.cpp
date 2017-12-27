@@ -252,7 +252,7 @@ void AsyncFutureTests::test_function_traits()
 
     QVERIFY((std::is_same<Private::function_traits<TYPEOF(func4)>::template arg<0>::type, bool>::value) == 1);
     QVERIFY((std::is_same<Private::arg0_traits<decltype(func4)>::type, bool>::value) == 1);
-    QVERIFY((std::is_same<Private::obserable_traits<decltype(func4)>::type, bool>::value) == 1);
+    QVERIFY((std::is_same<Private::obserable_traits<decltype(func4)>::type, void>::value) == 1);
 
 
 }
