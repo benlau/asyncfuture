@@ -28,7 +28,7 @@ static QStringList findImageFiles(const QString& src) {
     return res;
 }
 
-static QFuture<QImage> readImageFromFolder(const QString& folder) {
+static QFuture<QImage> readImagesFromFolder(const QString& folder) {
     auto defer = AsyncFuture::deferred<QImage>();
 
     auto worker = [=]() mutable {
@@ -76,7 +76,7 @@ void SampleCode::v0_4_release_note()
         QString input;
         // Sample code 2
 
-        auto future = readImageFromFolder(input);
+        auto future = readImagesFromFolder(input);
         QVERIFY(!future.isFinished());
         await(future);
         Automator::wait(100);

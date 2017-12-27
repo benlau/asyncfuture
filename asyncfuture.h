@@ -140,29 +140,54 @@ struct arg0_traits : public arg0_traits<decltype(&T::operator())> {
 
 template <typename C, typename R>
 struct arg0_traits<R(C::*)() const> {
-    typedef void result_type;
+    typedef void type;
 };
 
 template <typename C, typename R>
 struct arg0_traits<R(C::*)()> {
-    typedef void result_type;
+    typedef void type;
 };
 
 template <typename C, typename R, typename Arg0, typename ...Args>
 struct arg0_traits<R(C::*)(Arg0, Args...) const> {
-    typedef Arg0 result_type;
+    typedef Arg0 type;
 };
 
 template <typename C, typename R, typename Arg0, typename ...Args>
 struct arg0_traits<R(C::*)(Arg0, Args...)> {
-    typedef Arg0 result_type;
+    typedef Arg0 type;
+};
+
+// Obtain the observable type according to the Functor
+template <typename T>
+struct obserable_traits: public obserable_traits<decltype(&T::operator())> {
+};
+
+template <typename C, typename R, typename ...Args>
+struct obserable_traits<QFuture<R>(C::*)(Args...) const> {
+    typedef R type;
+};
+
+template <typename C, typename R, typename ...Args>
+struct obserable_traits<QFuture<R>(C::*)(Args...)> {
+    typedef R type;
+};
+
+template <typename C, typename R, typename ...Args>
+struct obserable_traits<R(C::*)(Args...) const> {
+    typedef R type;
+};
+
+template <typename C, typename R, typename ...Args>
+struct obserable_traits<R(C::*)(Args...)> {
+    typedef R type;
 };
 
 template <typename Functor>
 using RetType = typename function_traits<Functor>::result_type;
 
 template <typename Functor>
-using Arg0Type = typename arg0_traits<Functor>::result_type;
+using Arg0Type = typename arg0_traits<Functor>::type;
 
 template <typename Functor>
 struct ret_type_is_void {
