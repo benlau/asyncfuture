@@ -33,7 +33,8 @@ static QFuture<QImage> readImageFromFolder(const QString& folder) {
 
     auto worker = [=]() mutable {
         QStringList files = findImageFiles(folder);
-        defer.complete(QtConcurrent::mapped(files, readImage));
+        QFuture<QImage> future = QtConcurrent::mapped(files, readImage);
+        defer.complete(future);
     };
 
     QtConcurrent::run(worker);
@@ -81,7 +82,7 @@ void SampleCode::v0_4_release_note()
         Automator::wait(100);
 
         QCOMPARE(future.progressValue(), 3);
-//        QCOMPARE(future.isStarted(), true);
+        QCOMPARE(future.isStarted(), true);
 
         QList<QImage> result = future.results();
         QCOMPARE(result.size(), 3);

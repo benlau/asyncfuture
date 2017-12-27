@@ -361,7 +361,11 @@ public:
     template <typename ANY>
     void track(QFuture<ANY> future) {
         QPointer<DeferredFuture<T>> thiz = this;
-        QFutureWatcher<ANY> *watcher = new QFutureWatcher<ANY>(this);
+        QFutureWatcher<ANY> *watcher = new QFutureWatcher<ANY>();
+
+        if ((QThread::currentThread() != QCoreApplication::instance()->thread())) {
+            watcher->moveToThread(QCoreApplication::instance()->thread());
+        }
 
         QObject::connect(watcher, &QFutureWatcher<ANY>::finished, [=]() {
             watcher->disconnect();
