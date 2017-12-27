@@ -160,26 +160,36 @@ struct arg0_traits<R(C::*)(Arg0, Args...)> {
 
 // Obtain the observable type according to the Functor
 template <typename T>
-struct obserable_traits: public obserable_traits<decltype(&T::operator())> {
+struct observable_traits: public observable_traits<decltype(&T::operator())> {
 };
 
 template <typename C, typename R, typename ...Args>
-struct obserable_traits<QFuture<R>(C::*)(Args...) const> {
+struct observable_traits<QFuture<QFuture<R>>(C::*)(Args...) const> {
     typedef R type;
 };
 
 template <typename C, typename R, typename ...Args>
-struct obserable_traits<QFuture<R>(C::*)(Args...)> {
+struct observable_traits<QFuture<QFuture<R>>(C::*)(Args...)> {
     typedef R type;
 };
 
 template <typename C, typename R, typename ...Args>
-struct obserable_traits<R(C::*)(Args...) const> {
+struct observable_traits<QFuture<R>(C::*)(Args...) const> {
     typedef R type;
 };
 
 template <typename C, typename R, typename ...Args>
-struct obserable_traits<R(C::*)(Args...)> {
+struct observable_traits<QFuture<R>(C::*)(Args...)> {
+    typedef R type;
+};
+
+template <typename C, typename R, typename ...Args>
+struct observable_traits<R(C::*)(Args...) const> {
+    typedef R type;
+};
+
+template <typename C, typename R, typename ...Args>
+struct observable_traits<R(C::*)(Args...)> {
     typedef R type;
 };
 
@@ -1021,7 +1031,6 @@ public:
                          typename Private::function_traits<Completed>::result_type
                 >(onCompleted, [](){});
     }
-
 
     template <typename Completed, typename Canceled>
     typename std::enable_if<Private::ret_type_is_future<Completed>::value,

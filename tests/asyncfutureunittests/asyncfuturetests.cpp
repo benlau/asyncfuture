@@ -196,7 +196,7 @@ void AsyncFutureTests::test_QtConcurrent_map()
 
     future.pause();
 
-    QEXPECT_FAIL("", "It can't really pause the execution of QtConcurrent::map", Continue);
+    QEXPECT_FAIL("", "It is not possible to pause the execution of QtConcurrent::map", Continue);
     QTRY_COMPARE_WITH_TIMEOUT(paused, true, 300);
     QTRY_COMPARE(resumed, false);
 
@@ -221,7 +221,7 @@ void AsyncFutureTests::test_function_traits()
     QVERIFY(Private::function_traits<TYPEOF(func1)>::result_type_is_future == 0);
     QVERIFY((std::is_same<Private::function_traits<TYPEOF(func1)>::future_arg_type, void>::value) == 1);
     QVERIFY((std::is_same<Private::arg0_traits<decltype(func1)>::type, void>::value) == 1);
-    QVERIFY((std::is_same<Private::obserable_traits<decltype(func1)>::type, void>::value) == 1);
+    QVERIFY((std::is_same<Private::observable_traits<decltype(func1)>::type, void>::value) == 1);
 
     auto func2 = []() -> QFuture<int> {
         return QFuture<int>();
@@ -232,7 +232,7 @@ void AsyncFutureTests::test_function_traits()
     QVERIFY(Private::function_traits<TYPEOF(func2)>::result_type_is_future == true);
     QVERIFY((std::is_same<Private::function_traits<TYPEOF(func2)>::future_arg_type, void>::value) == 0);
     QVERIFY((std::is_same<Private::function_traits<TYPEOF(func2)>::future_arg_type, int>::value) == 1);
-    QVERIFY((std::is_same<Private::obserable_traits<decltype(func2)>::type, int>::value) == 1);
+    QVERIFY((std::is_same<Private::observable_traits<decltype(func2)>::type, int>::value) == 1);
 
 
     auto func3 = []() -> QFuture<void> {
@@ -243,7 +243,7 @@ void AsyncFutureTests::test_function_traits()
 
     QVERIFY(Private::function_traits<TYPEOF(func3)>::result_type_is_future == true);
     QVERIFY((std::is_same<Private::function_traits<TYPEOF(func3)>::future_arg_type, void>::value) == 1);
-    QVERIFY((std::is_same<Private::obserable_traits<decltype(func3)>::type, void>::value) == 1);
+    QVERIFY((std::is_same<Private::observable_traits<decltype(func3)>::type, void>::value) == 1);
 
     auto func4 = [=](bool) mutable -> void  {
         dummy++;
@@ -252,8 +252,13 @@ void AsyncFutureTests::test_function_traits()
 
     QVERIFY((std::is_same<Private::function_traits<TYPEOF(func4)>::template arg<0>::type, bool>::value) == 1);
     QVERIFY((std::is_same<Private::arg0_traits<decltype(func4)>::type, bool>::value) == 1);
-    QVERIFY((std::is_same<Private::obserable_traits<decltype(func4)>::type, void>::value) == 1);
+    QVERIFY((std::is_same<Private::observable_traits<decltype(func4)>::type, void>::value) == 1);
 
+    auto func5 = [=]() mutable -> QFuture<QFuture<int>> {
+        return QFuture<QFuture<int>>();
+    };
+
+    QVERIFY((std::is_same<Private::observable_traits<decltype(func5)>::type, int>::value) == 1);
 
 }
 
