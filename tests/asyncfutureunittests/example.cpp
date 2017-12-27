@@ -23,6 +23,12 @@ Example::Example(QObject *parent) : QObject(parent)
 
 }
 
+/*
+ * 1. Convert a signal from QObject into a QFuture object
+ * https://github.com/benlau/asyncfuture
+ *
+ */
+
 void Example::example_Timer_timeout()
 {
     QTimer *timer = new QTimer(this);
@@ -48,6 +54,13 @@ void Example::example_Timer_timeout()
     timer->start();
     waitUntil(future);
 }
+
+/*
+ *
+ * 2. Combine multiple futures with different type into a single future object
+ * https://github.com/benlau/asyncfuture
+ *
+ */
 
 void Example::example_combine_multiple_future()
 {

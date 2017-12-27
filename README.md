@@ -194,6 +194,17 @@ QFuture<bool> f2 = observe(button, &QAbstractButton::toggled).future();
 
 See [Observable`<T>`](#observablet)
 
+AsyncFuture::observe(object, SIGNAL(signal))
+----------------------
+
+This function creates an `Observable<QVariant>` object which contains a future to represent the result of the signal. You could obtain the future by the future() method. And observe the result by subscribe() / context() methods. The result of the future is equal to the first parameter of the signal.
+
+```c++
+QFuture<QVariant> future = observe(timer, SIGNAL(timeout()).future();
+```
+
+See [Observable`<T>`](#observablet)
+
 AsyncFuture::observe(QFuture&lt;T&gt; future)
 -------------
 
@@ -290,8 +301,8 @@ Obtain the QFuture object to represent the result.
 
 **Observable&lt;T&gt; Observable&lt;T&gt;::subscribe(Completed onCompleted, Canceled onCanceled)**
 
-    Observable&lt;T&gt; Observable&lt;T&gt;::subscribe(Completed onCompleted);
-    Observable&lt;T&gt; Observable&lt;T&gt;::subscribe(Completed onCompleted, Canceled onCanceled);
+    Observable<T> Observable<T>::subscribe(Completed onCompleted);
+    Observable<T> Observable<T>::subscribe(Completed onCompleted, Canceled onCanceled);
 
 Register a onCompleted and/or onCanceled callback to the observed QFuture object. Unlike the context() function, the callbacks will be triggered as long as the current thread exists. The return value is an Observable<R> object where R is the return type of the onCompleted callback.
 
@@ -337,11 +348,11 @@ In the above example, the result of `validating` is supposed to be true. However
 
 **void Observable&lt;T&gt;::onProgress(Functor callback)**
 
-Listens the `progressValueChanged` and `progressRangeChanged` signal from the observed futur then trigger the callback. The callback function may not return any thing or a boolean value. If the boolean value is false, it will remove the listener such that the callback may not triggered anymore.
+Listens the `progressValueChanged` and `progressRangeChanged` signal from the observed future then trigger the callback. The callback function may return nothing or a boolean value. If the boolean value is false, it will remove the listener such that the callback may not trigger anymore.
 
 Example
 
-```
+```c++
 QFuture<int> future = QtConcurrent::mapped(input, workerFunction);
 
 AsyncFuture::observe(future).onProgress([=]() -> bool {
@@ -466,7 +477,8 @@ Complete the future object with a list of result. User may obtain all the value 
 
 **Deferred&lt;T&gt;::complete(QFuture&lt;T&gt;)**
 
-This future object is deferred to complete/cancel. It will adopt the state from the input future. If the input future is completed, then it will be completed too. That is same for cancel.
+This future object is deferred to complete/cancel. It will track the state from the input future. If the input future is completed, then it will be completed too. That is same for cancel.
+
 
 **Deferred&lt;T&gt;::cancel()**
 
