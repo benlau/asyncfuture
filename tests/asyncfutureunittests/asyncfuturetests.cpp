@@ -260,6 +260,15 @@ void AsyncFutureTests::test_function_traits()
 
     QVERIFY((std::is_same<Private::observable_traits<decltype(func5)>::type, int>::value) == 1);
 
+    {
+        QFuture<QFuture<bool>> f1;
+        static_assert(std::is_same<Private::future_traits<decltype(f1)>::arg_type, bool>::value, "");
+
+        QFuture<QFuture<QFuture<int>>> f2;
+        static_assert(std::is_same<Private::future_traits<decltype(f2)>::arg_type, int>::value, "");
+
+    }
+
 }
 
 void AsyncFutureTests::test_private_DeferredFuture()

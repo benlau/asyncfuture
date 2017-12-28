@@ -521,6 +521,44 @@ observe(f2).subscribe([=]() {
 });
 ```
 
+Future Object Tracking
+---------------
+
+Since v0.4, the deferred object is supported to track the status of another future object. It will synchronize the `progressValue` / `progressMinimium ` /  `progressMaximium` and status of the tracking object. (e.g started signal)
+
+For example:
+
+```c++
+
+        auto defer = AsyncFuture::deferred<QImage>();
+
+        QFuture<QImage> input = QtConcurrent::mapped(files, readImage);
+
+        defer.complete(input); // defer.future() will be a mirror of `input`. The `progressValue` will be changed and it will emit "started" signal via QFutureWatcher
+```
+
+A practical use-case
+
+```c++
+
+static QFuture<QImage> readImagesFromFolder(const QString& folder) {
+    auto defer = AsyncFuture::deferred<QImage>();
+
+    auto worker = [=]() mutable {
+        QStringList files = findImageFiles(folder);
+        QFuture<QImage> future = QtConcurrent::mapped(files, readImage);
+        defer.complete(future);
+    };
+
+    QtConcurrent::run(worker);
+
+    return defer.future();
+}
+```
+
+In the example code above, the future returned by `defer.future` is supposed to be a mirror of the result of `QtConcurrent::mapped`. However, the linkage is  not estimated in the beginning until the worker functions start `QtConcurrent::mapped`
+
+In case it needs to track the status of a future object but it won’t complete automatically. It may use track() function
 
 Examples
 ========

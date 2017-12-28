@@ -52,6 +52,10 @@ struct future_traits<C <T> >
 };
 
 template <typename T>
+struct future_traits<QFuture<QFuture<T>>> : public future_traits<QFuture<T>> {
+};
+
+template <typename T>
 struct future_traits<QFuture<T> >{
     enum {
         is_future = 1
