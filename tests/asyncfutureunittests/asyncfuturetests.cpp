@@ -784,15 +784,16 @@ void AsyncFutureTests::test_Observable_subscribe_return_future()
         return future;
     };
 
-    auto observable = observe(QtConcurrent::run(bWorker)).subscribe(futureCleanupBool);
+    Observable<bool> observable1 = observe(QtConcurrent::run(bWorker));
+    Observable<int> observable2 = observable1.subscribe(futureCleanupBool);
 
-    waitUntil(observable.future(), 1000);
-    QCOMPARE(observable.future().result(), 10);
+    waitUntil(observable2.future(), 1000);
+    QCOMPARE(observable2.future().result(), 10);
 
-    observable = observe(QtConcurrent::run(bWorker)).subscribe(futureCleanupBool,[]() {});
-    QCOMPARE(observable.future().isFinished(), false);
-    waitUntil(observable.future(), 1000);
-    QCOMPARE(observable.future().result(), 10);
+    observable2 = observe(QtConcurrent::run(bWorker)).subscribe(futureCleanupBool,[]() {});
+    QCOMPARE(observable2.future().isFinished(), false);
+    waitUntil(observable2.future(), 1000);
+    QCOMPARE(observable2.future().result(), 10);
 }
 
 void AsyncFutureTests::test_Observable_subscribe_return_canceledFuture()
@@ -1082,6 +1083,34 @@ void AsyncFutureTests::test_Deferred_complete_future()
 
         QCOMPARE(future.isFinished(), true);
         QCOMPARE(future.isCanceled(), true);
+    }
+
+    {
+        // case: 3 - complete QFuture<QFuture<>>
+
+        auto defer = deferred<int>();
+
+        {
+            auto worker = [=]() {
+                auto internalWorker = [=]() {
+                    return 99;
+                };
+                return QtConcurrent::run(internalWorker);
+            };
+
+            QFuture<QFuture<int>> future = QtConcurrent::run(worker);
+            defer.complete(future);
+        }
+
+        auto future = defer.future();
+        QCOMPARE(future.isFinished(), false);
+        QCOMPARE(future.isCanceled(), false);
+
+        await(future, 1000);
+
+        QCOMPARE(future.isFinished(), true);
+        QCOMPARE(future.isCanceled(), false);
+        QCOMPARE(future.result(), 99);
     }
 }
 
