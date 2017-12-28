@@ -38,6 +38,8 @@ private slots:
 
     void test_private_run();
 
+    void test_observe_future_future();
+
     void test_Observable_context();
     void test_Observable_context_destroyed();
     void test_Observable_context_in_thread();

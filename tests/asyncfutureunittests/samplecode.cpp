@@ -28,17 +28,23 @@ static QStringList findImageFiles(const QString& src) {
     return res;
 }
 
-static QFuture<QImage> readImagesFromFolder(const QString& folder) {
-    auto defer = AsyncFuture::deferred<QImage>();
+static
+QFuture<QImage> readImagesFromFolder(const QString& folder) {
 
-    auto worker = [=]() mutable {
+    auto worker = [=]() {
+        // Read files from a directory in a thread
         QStringList files = findImageFiles(folder);
-        QFuture<QImage> future = QtConcurrent::mapped(files, readImage);
-        defer.complete(future);
+
+        // Concurrent image reader
+        return QtConcurrent::mapped(files, readImage);
     };
 
-    QtConcurrent::run(worker);
+    auto future = QtConcurrent::run(worker); // The type of future is QFuture<QFuture<QImage>>
 
+    auto defer = AsyncFuture::deferred<QImage>();
+
+    // defer object track the input future. It will emit "started" and `progressValueChanged` according to the status of the future of "QtConcurrent::mapped"
+    defer.complete(future);
     return defer.future();
 }
 
@@ -74,7 +80,7 @@ void SampleCode::v0_4_release_note()
 
     {
         QString input;
-        // Sample code 2
+        // Sample code 2 - readImagesFromFolder
 
         auto future = readImagesFromFolder(input);
         QVERIFY(!future.isFinished());

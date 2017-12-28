@@ -541,19 +541,25 @@ A practical use-case
 
 ```c++
 
-static QFuture<QImage> readImagesFromFolder(const QString& folder) {
-    auto defer = AsyncFuture::deferred<QImage>();
+QFuture<QImage> readImagesFromFolder(const QString& folder) {
 
-    auto worker = [=]() mutable {
+    auto worker = [=]() {
+        // Read files from a directory in a thread
         QStringList files = findImageFiles(folder);
-        QFuture<QImage> future = QtConcurrent::mapped(files, readImage);
-        defer.complete(future);
+
+        // Concurrent image reader
+        return QtConcurrent::mapped(files, readImage);
     };
 
-    QtConcurrent::run(worker);
+    auto future = QtConcurrent::run(worker); // The type of future is QFuture<QFuture<QImage>>
 
+    auto defer = AsyncFuture::deferred<QImage>();
+
+    // defer object track the input future. It will emit "started" and `progressValueChanged` according to the status of the future of "QtConcurrent::mapped"
+    defer.complete(future);
     return defer.future();
 }
+
 ```
 
 In the example code above, the future returned by `defer.future` is supposed to be a mirror of the result of `QtConcurrent::mapped`. However, the linkage is  not estimated in the beginning until the worker functions start `QtConcurrent::mapped`

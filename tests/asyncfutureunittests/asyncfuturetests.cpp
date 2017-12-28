@@ -23,6 +23,9 @@ QFuture<T> finishedFuture(T value) {
     return o.future();
 }
 
+static int mapFunc(int value) {
+    return value * value;
+}
 
 AsyncFutureTests::AsyncFutureTests(QObject *parent) : QObject(parent)
 {
@@ -335,6 +338,27 @@ void AsyncFutureTests::test_private_run()
 
     //Error statement
     // value = ObservableFuture::Private::run(iCallbackBool, vFuture);
+}
+
+void AsyncFutureTests::test_observe_future_future()
+{
+    auto worker = [=]() {
+        QList<int> list;
+        list << 1 << 2 << 3 << 4;
+        return QtConcurrent::mapped(list, mapFunc);
+    };
+
+    // Convert QFuture<QFuture<int>> to QFuture<int>
+    QFuture<int> future = observe(QtConcurrent::run(worker)).future();
+    QVERIFY(!future.isFinished());
+    await(future);
+
+    QCOMPARE(future.progressValue(), 4);
+    QCOMPARE(future.isStarted(), true);
+
+    QList<int> result = future.results();
+    QCOMPARE(result.size(), 4);
+
 }
 
 void AsyncFutureTests::test_Observable_context()

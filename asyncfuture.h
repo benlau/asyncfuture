@@ -1254,6 +1254,13 @@ public:
 };
 
 template <typename T>
+static Observable<T> observe(QFuture<QFuture<T>> future) {
+    Deferred<T> defer;
+    defer.complete(future);
+    return Observable<T>(defer.future());
+}
+
+template <typename T>
 static Observable<T> observe(QFuture<T> future) {
     return Observable<T>(future);
 }
