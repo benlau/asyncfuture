@@ -225,6 +225,35 @@ observe(future).subscribe([](bool toggled) {
 });
 ```
 
+AsyncFuture::observe(QFuture&lt;QFuture&lt;T&gt;T&gt; future)
+-----
+
+This function creates an Observable<T> object which provides an interface for observing the input future.  That is designed to handle following use-case:
+
+```
+QFuture<QImage> readImagesFromFolder(const QString& folder) {
+
+    auto worker = [=]() {
+        // Read files from a directory in a thread
+        QStringList files = findImageFiles(folder);
+
+        // Concurrent image reader
+        return QtConcurrent::mapped(files, readImage);
+    };
+
+    auto future = QtConcurrent::run(worker); // The type of future is QFuture<QFuture<QImage>>
+
+    auto defer = AsyncFuture::deferred<QImage>();
+
+    // defer object track the input future. It will emit "started" and `progressValueChanged` according to the status of the future of "QtConcurrent::mapped"
+    defer.complete(future);
+    return defer.future();
+}
+```
+
+See [Observable`<T>`](#observablet)
+
+
 
 AsyncFuture::combine(CombinatorMode mode = FailFast)
 ------------
