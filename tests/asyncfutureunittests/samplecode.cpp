@@ -48,6 +48,22 @@ QFuture<QImage> readImagesFromFolder(const QString& folder) {
     return defer.future();
 }
 
+static
+QFuture<QImage> readImagesFromFolderV2(const QString& folder) {
+
+    auto worker = [=]() {
+        // Read files from a directory in a thread
+        QStringList files = findImageFiles(folder);
+
+        // Concurrent image reader
+        return QtConcurrent::mapped(files, readImage);
+    };
+
+    auto future = QtConcurrent::run(worker); // This function returns a QFuture<QFuture<QImage>> object
+
+    return AsyncFuture::observe(future).future(); // Convert to QFuture<QImage>
+}
+
 void SampleCode::v0_4_release_note()
 {
     {
@@ -60,16 +76,16 @@ void SampleCode::v0_4_release_note()
 
         auto defer = AsyncFuture::deferred<QImage>();
 
-        QFuture<QImage> input = QtConcurrent::mapped(files, readImage);
+        QFuture<QImage> mapped = QtConcurrent::mapped(files, readImage);
 
-        defer.complete(input); // defer.future() will be a mirror of `input`. The `progressValue` will be changed and it will emit "started" signal via QFutureWatcher
+        defer.complete(mapped); // defer.future() will be a mirror of `mapped`. The `progressValue` will be changed and it will emit "started" signal via QFutureWatcher
 
         /* End of Sample code */
 
         await(defer.future());
         auto future = defer.future();
 
-        QCOMPARE(input.isStarted(), true);
+        QCOMPARE(mapped.isStarted(), true);
 
         QCOMPARE(future.progressValue(), files.size());
         QCOMPARE(future.isStarted(), true);
@@ -83,6 +99,22 @@ void SampleCode::v0_4_release_note()
         // Sample code 2 - readImagesFromFolder
 
         auto future = readImagesFromFolder(input);
+        QVERIFY(!future.isFinished());
+        await(future);
+        Automator::wait(100);
+
+        QCOMPARE(future.progressValue(), 3);
+        QCOMPARE(future.isStarted(), true);
+
+        QList<QImage> result = future.results();
+        QCOMPARE(result.size(), 3);
+    }
+
+    {
+        QString input;
+        // Sample code 2 - readImagesFromFolder
+
+        auto future = readImagesFromFolderV2(input);
         QVERIFY(!future.isFinished());
         await(future);
         Automator::wait(100);

@@ -16,7 +16,8 @@ SOURCES +=     main.cpp \
     example.cpp \
     asyncfuturetests.cpp \
     bugtests.cpp \
-    samplecode.cpp
+    samplecode.cpp \
+    cookbook.cpp
 
 DEFINES += SRCDIR=\\\"$$PWD/\\\" QUICK_TEST_SOURCE_DIR=\\\"$$PWD/qmltests\\\"
 
@@ -34,7 +35,8 @@ HEADERS += \
     testfunctions.h \
     bugtests.h \
     asyncfutureutils.h \
-    samplecode.h
+    samplecode.h \
+    cookbook.h
 
 !win32 {
     QMAKE_CXXFLAGS += -Werror
