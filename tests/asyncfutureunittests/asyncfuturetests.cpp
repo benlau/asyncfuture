@@ -1149,6 +1149,11 @@ void AsyncFutureTests::test_Deferred_complete_future()
 
 void AsyncFutureTests::test_Deferred_complete_future_future()
 {
+    /*
+     Remarks:
+     - Deferred<void>::complete(QFuture<QFuture<int>>)
+     - That is not supported.
+     */
 
     auto worker = [=]() {
         Automator::wait(50);
@@ -1158,19 +1163,29 @@ void AsyncFutureTests::test_Deferred_complete_future_future()
         return QtConcurrent::mapped(list, mapFunc);
     };
 
-    auto f1 = QtConcurrent::run(worker);
+    QList<int> expectedResult;
+    expectedResult << 1 << 4 << 9;
 
-    auto defer = deferred<int>();
+    {
+        // Deferred<int>::complete(QFuture<QFuture<int>>)
+        auto f1 = QtConcurrent::run(worker);
 
-    defer.complete(f1);
-    auto f2 = defer.future();
-    QCOMPARE(f2.progressValue(), 0);
-    QCOMPARE(f2.progressMaximum(), 0);
+        auto defer = deferred<int>();
 
-    await(f2);
+        defer.complete(f1);
+        auto f2 = defer.future();
+        QCOMPARE(f2.progressValue(), 0);
+        QCOMPARE(f2.progressMaximum(), 0);
 
-    QCOMPARE(f2.progressValue(), 3);
-    QCOMPARE(f2.progressMaximum(), 3);
+        await(f2);
+
+        QCOMPARE(f2.progressValue(), 3);
+        QCOMPARE(f2.progressMaximum(), 3);
+
+        QCOMPARE(f2.results() , expectedResult);
+    }
+
+
 }
 
 void AsyncFutureTests::test_Deferred_complete_list()

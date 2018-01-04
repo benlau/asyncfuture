@@ -1212,6 +1212,13 @@ public:
         this->m_future = deferredFuture->future();
     }
 
+    template <typename ANY>
+    void complete(QFuture<QFuture<ANY>> future) {
+        Q_UNUSED(future);
+
+        static_assert(Private::False<ANY>::value, "Deferred<void>::complete(QFuture<QFuture<ANY>>) is not supported");
+    }
+
     void complete(QFuture<void> future) {
         deferredFuture->complete(future);
     }
