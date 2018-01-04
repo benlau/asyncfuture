@@ -22,4 +22,5 @@ script:
     - cd build
     - run-unittests ../tests/asyncfutureunittests/asyncfutureunittests.pro
     - valgrind --num-callers=30 --leak-check=full --track-origins=yes ./asyncfutureunittests
+    - qpm check
 

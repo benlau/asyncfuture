@@ -525,6 +525,28 @@ public:
         track(future);
     }
 
+    template <typename ANY>
+    void complete(QFuture<QFuture<ANY>> future) {
+        incRefCount();
+
+        auto onFinished = [=]() {
+            complete(future.result());
+            this->decRefCount();
+        };
+
+        auto onCanceled = [=]() {
+            this->cancel();
+            this->decRefCount();
+        };
+
+        watch(future,
+              this,
+              0,
+              onFinished,
+              onCanceled);
+        // It don't track for the first level of future
+    }
+
     void cancel() {
         if (resolved) {
             return;
@@ -1144,6 +1166,10 @@ public:
     Deferred() : Observable<T>(),
               deferredFuture(Private::DeferredFuture<T>::create())  {
         this->m_future = deferredFuture->future();
+    }
+
+    void complete(QFuture<QFuture<T>> future) {
+        deferredFuture->complete(future);
     }
 
     void complete(QFuture<T> future) {

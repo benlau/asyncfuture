@@ -69,6 +69,8 @@ private slots:
 
     void test_Deferred();
     void test_Deferred_complete_future();
+    void test_Deferred_complete_future_future();
+
     void test_Deferred_complete_list();
     void test_Deferred_cancel_future();
     void test_Deferred_across_thread();

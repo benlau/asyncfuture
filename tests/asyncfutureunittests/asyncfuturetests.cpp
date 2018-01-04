@@ -1147,6 +1147,32 @@ void AsyncFutureTests::test_Deferred_complete_future()
     }
 }
 
+void AsyncFutureTests::test_Deferred_complete_future_future()
+{
+
+    auto worker = [=]() {
+        Automator::wait(50);
+        QList<int> list;
+        list << 1 << 2 <<3;
+
+        return QtConcurrent::mapped(list, mapFunc);
+    };
+
+    auto f1 = QtConcurrent::run(worker);
+
+    auto defer = deferred<int>();
+
+    defer.complete(f1);
+    auto f2 = defer.future();
+    QCOMPARE(f2.progressValue(), 0);
+    QCOMPARE(f2.progressMaximum(), 0);
+
+    await(f2);
+
+    QCOMPARE(f2.progressValue(), 3);
+    QCOMPARE(f2.progressMaximum(), 3);
+}
+
 void AsyncFutureTests::test_Deferred_complete_list()
 {
     auto defer = deferred<int>();
