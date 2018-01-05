@@ -13,6 +13,7 @@ Reference Articles
 ------------------
 
 1. [Multithreading Programming with Future & Promise – E-Fever – Medium](https://medium.com/e-fever/multithreading-programming-with-future-promise-2d35e13b9404)
+1. [AsyncFuture Cookbook 1 — Calling QtConcurrent::mapped within the run function](https://medium.com/e-fever/asyncfuture-cookbook-1-calling-qtconcurrent-mapped-within-the-run-function-ba58d523a0ce)
 
 Features
 ========
