@@ -154,6 +154,23 @@ void AsyncFutureTests::test_QFutureWatcher_in_thread()
     }
 }
 
+void AsyncFutureTests::test_QtConcurrent_exception()
+{
+    auto future = QtConcurrent::run([]() {
+        throw QException();
+        return 99;
+    });
+
+    QCOMPARE(future.isFinished(), false);
+    QCOMPARE(future.isCanceled(), false);
+
+    await(future);
+
+    QCOMPARE(future.isFinished(), true);
+    QCOMPARE(future.isCanceled(), true);
+    QCOMPARE(future.isResultReadyAt(0) , false);
+}
+
 void AsyncFutureTests::test_QtConcurrent_map()
 {
     QSemaphore semaphore(1);

@@ -30,6 +30,8 @@ private slots:
 
     void test_QFutureWatcher_in_thread();
 
+    void test_QtConcurrent_exception();
+
     void test_QtConcurrent_map();
 
     void test_function_traits();

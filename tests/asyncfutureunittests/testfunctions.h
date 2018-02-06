@@ -8,6 +8,8 @@
 #include <QTime>
 #include <asyncfuture.h>
 
+/// Test utilities function
+///
 namespace Test {
 
     template <typename T>
