@@ -85,3 +85,19 @@ void BugTests::test_nested_subscribe_in_thread()
     }, 1000));
 
 }
+
+void BugTests::test_issue4()
+{
+    int actualValue = -1;
+    auto defer = deferred<int>();
+
+    auto f = defer.subscribe([&](int&& value) {
+        actualValue = value;
+    }).future();
+
+    defer.complete(78);
+
+    await(f);
+
+    QCOMPARE(actualValue, 78);
+}
