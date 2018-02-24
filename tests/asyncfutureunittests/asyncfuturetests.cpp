@@ -894,6 +894,27 @@ void AsyncFutureTests::test_Observable_subscribe_return_mappedFuture()
     QCOMPARE(future.results(), expected);
 }
 
+void AsyncFutureTests::test_Observable_subscribe_exception()
+{
+
+    auto future = observe(QtConcurrent::run([](){})).subscribe([=]() {
+        throw QException();
+    }).future();
+
+    await(future);
+
+    QCOMPARE(future.isCanceled(), true);
+
+    future = observe(QtConcurrent::run([](){})).subscribe([=]() {
+        throw std::exception();
+    }).future();
+
+    await(future);
+
+    QCOMPARE(future.isCanceled(), true);
+
+}
+
 void AsyncFutureTests::test_Observable_onProgress()
 {
     class CustomDeferred: public AsyncFuture::Deferred<int> {

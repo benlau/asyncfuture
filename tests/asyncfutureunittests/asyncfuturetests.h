@@ -67,6 +67,8 @@ private slots:
 
     void test_Observable_subscribe_return_mappedFuture();
 
+    void test_Observable_subscribe_exception();
+
     void test_Observable_onProgress();
 
     void test_Deferred();
