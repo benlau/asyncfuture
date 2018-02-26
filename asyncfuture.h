@@ -391,9 +391,9 @@ void watch(QFuture<T> future,
 template <typename T>
 class DeferredFuture : public QObject, public QFutureInterface<T>{
 public:
-    DeferredFuture(QObject* parent = 0): QObject(parent),
+    DeferredFuture(QObject* parent = 0, bool autoDelete = false): QObject(parent),
                                          QFutureInterface<T>(QFutureInterface<T>::Running),
-                                         autoDelete(false),
+                                         autoDelete(autoDelete),
                                          resolved(false),
                                          refCount(1) {
     }
@@ -607,10 +607,6 @@ public:
                 deleteLater();
             }
         }
-    }
-
-    void setAutoDelete(bool value) {
-        autoDelete = value;
     }
 
     /// Create a DeferredFugture instance in a shared pointer
@@ -966,8 +962,7 @@ eval(Functor functor, QFuture<T> future) {
 template <typename DeferredType, typename RetType, typename T, typename Completed, typename Canceled>
 static DeferredFuture<DeferredType>* execute(QFuture<T> future, QObject* contextObject, Completed onCompleted, Canceled onCanceled) {
 
-    DeferredFuture<DeferredType>* defer = new DeferredFuture<DeferredType>();
-    defer->setAutoDelete(true);
+    DeferredFuture<DeferredType>* defer = new DeferredFuture<DeferredType>(nullptr, true);
 
     watch(future,
           contextObject,
@@ -1323,11 +1318,9 @@ auto observe(QObject* object, Member pointToMemberFunction)
 
     typedef typename Private::signal_traits<Member>::result_type RetType;
 
-    auto defer = new Private::DeferredFuture<RetType>();
+    auto defer = new Private::DeferredFuture<RetType>(nullptr, true);
 
     auto proxy = new Private::Proxy<RetType>(defer);
-
-    defer->setAutoDelete(true);
 
     defer->cancel(object, &QObject::destroyed);
 
@@ -1343,11 +1336,9 @@ auto observe(QObject* object, Member pointToMemberFunction)
 
 inline Observable<QVariant> observe(QObject *object,QString signal)  {
 
-    auto defer = new Private::DeferredFuture<QVariant>();
+    auto defer = new Private::DeferredFuture<QVariant>(nullptr, true);
 
     auto proxy = new Private::Proxy2(defer);
-
-    defer->setAutoDelete(true);
 
     defer->cancel(object, &QObject::destroyed);
 
