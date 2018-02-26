@@ -937,7 +937,6 @@ void AsyncFutureTests::test_Observable_onProgress()
     CustomDeferred defer;
     auto future = defer.future();
 
-    QList<int> sequence;
     int count = 0;
     int value = 999;
     int min = 999;

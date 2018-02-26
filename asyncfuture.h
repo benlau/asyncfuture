@@ -609,6 +609,10 @@ public:
         }
     }
 
+    void setAutoDelete(bool value) {
+        autoDelete = value;
+    }
+
     /// Create a DeferredFugture instance in a shared pointer
     static QSharedPointer<DeferredFuture<T> > create() {
 
@@ -625,13 +629,6 @@ public:
         QSharedPointer<DeferredFuture<T> > ptr(new DeferredFuture<T>(), deleter);
         return ptr;
     }
-
-    // Enable auto delete if the refCount is dropped to zero or it is completed/canceled
-    bool autoDelete;
-    bool resolved;
-
-    // A virtual reference count system. If autoDelete is not true, it won't delete the object even the count is zero
-    int refCount;
 
     template <typename R>
     void reportResult(R& value, int index = -1) {
@@ -654,7 +651,15 @@ public:
         QFutureInterface<T>::reportResult(value.value);
     }
 
+protected:
+    // Enable auto delete if the refCount is dropped to zero or it is completed/canceled
+    bool autoDelete;
+    bool resolved;
+
 private:
+
+    // A virtual reference count system. If autoDelete is not true, it won't delete the object even the count is zero
+    int refCount;
 
     /// The future is already finished. It will take effect immediately
     template <typename ANY>
@@ -962,7 +967,8 @@ template <typename DeferredType, typename RetType, typename T, typename Complete
 static DeferredFuture<DeferredType>* execute(QFuture<T> future, QObject* contextObject, Completed onCompleted, Canceled onCanceled) {
 
     DeferredFuture<DeferredType>* defer = new DeferredFuture<DeferredType>();
-    defer->autoDelete = true;
+    defer->setAutoDelete(true);
+
     watch(future,
           contextObject,
           contextObject,[=]() {
@@ -1321,7 +1327,7 @@ auto observe(QObject* object, Member pointToMemberFunction)
 
     auto proxy = new Private::Proxy<RetType>(defer);
 
-    defer->autoDelete = true;
+    defer->setAutoDelete(true);
 
     defer->cancel(object, &QObject::destroyed);
 
@@ -1341,7 +1347,7 @@ inline Observable<QVariant> observe(QObject *object,QString signal)  {
 
     auto proxy = new Private::Proxy2(defer);
 
-    defer->autoDelete = true;
+    defer->setAutoDelete(true);
 
     defer->cancel(object, &QObject::destroyed);
 
