@@ -5,6 +5,7 @@
 #include <QThread>
 #include <QFutureWatcher>
 #include <QCoreApplication>
+#include <QMutex>
 #include <functional>
 
 #define ASYNCFUTURE_ERROR_OBSERVE_VOID_WITH_ARGUMENT "Observe a QFuture<void> but your callback contains an input argument"
@@ -592,12 +593,20 @@ public:
     }
 
     void incRefCount() {
+        mutex.lock();
         refCount++;
+        mutex.unlock();
     }
 
     void decRefCount() {
+        int count;
+
+        mutex.lock();
         refCount--;
-        if (refCount <= 0) {
+        count = refCount;
+        mutex.unlock();
+
+        if (count <= 0) {
             cancel();
 
             // In case it is already resolved
@@ -653,6 +662,8 @@ private:
 
     // A virtual reference count system. If autoDelete is not true, it won't delete the object even the count is zero
     int refCount;
+
+    QMutex mutex;
 
     /// The future is already finished. It will take effect immediately
     template <typename ANY>
