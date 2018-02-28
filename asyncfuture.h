@@ -394,7 +394,6 @@ public:
     DeferredFuture(QObject* parent = 0, bool autoDelete = false): QObject(parent),
                                          QFutureInterface<T>(QFutureInterface<T>::Running),
                                          autoDelete(autoDelete),
-                                         resolved(false),
                                          refCount(1) {
     }
 
@@ -456,12 +455,15 @@ public:
         }
     }
 
+    bool isFinished() const {
+        return QFutureInterface<T>::isFinished();
+    }
+
     // complete<void>()
     void complete() {
-        if (resolved) {
+        if (isFinished()) {
             return;
         }
-        resolved = true;
         QFutureInterface<T>::reportFinished();
 
         if (autoDelete) {
@@ -471,10 +473,9 @@ public:
 
     template <typename R>
     void complete(R value) {
-        if (resolved) {
+        if (isFinished()) {
             return;
         }
-        resolved = true;
         reportResult(value);
         QFutureInterface<T>::reportFinished();
 
@@ -485,11 +486,9 @@ public:
 
     template <typename R>
     void complete(QList<R>& value) {
-        if (resolved) {
+        if (isFinished()) {
             return;
         }
-
-        resolved = true;
 
         reportResult(value);
         QFutureInterface<T>::reportFinished();
@@ -553,10 +552,9 @@ public:
     }
 
     void cancel() {
-        if (resolved) {
+        if (isFinished()) {
             return;
         }
-        resolved = true;
         QFutureInterface<T>::reportCanceled();
         QFutureInterface<T>::reportFinished();
 
@@ -613,7 +611,7 @@ public:
     static QSharedPointer<DeferredFuture<T> > create() {
 
         auto deleter = [](DeferredFuture<T> *object) {
-            if (object->resolved) {
+            if (object->isFinished()) {
                 // If that is already resolved, it is not necessary to keep it in memory
                 object->deleteLater();
             } else {
@@ -650,7 +648,6 @@ public:
 protected:
     // Enable auto delete if the refCount is dropped to zero or it is completed/canceled
     bool autoDelete;
-    bool resolved;
 
 private:
 
@@ -688,7 +685,7 @@ public:
 
     template <typename T>
     void addFuture(const QFuture<T> future) {
-        if (resolved) {
+        if (isFinished()) {
             return;
         }
         int index = count++;
@@ -738,7 +735,7 @@ private:
     }
 
     void checkFulfilled() {
-        if (resolved) {
+        if (isFinished()) {
             return;
         }
 
