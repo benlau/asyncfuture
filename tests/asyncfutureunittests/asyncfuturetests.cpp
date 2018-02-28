@@ -157,6 +157,7 @@ void AsyncFutureTests::test_QFutureWatcher_in_thread()
 void AsyncFutureTests::test_QtConcurrent_exception()
 {
     auto future = QtConcurrent::run([]() {
+        Automator::wait(100);
         throw QException();
         return 99;
     });
