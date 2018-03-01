@@ -658,12 +658,12 @@ protected:
     // Enable auto delete if the refCount is dropped to zero or it is completed/canceled
     bool autoDelete;
 
+    QMutex mutex;
+
 private:
 
     // A virtual reference count system. If autoDelete is not true, it won't delete the object even the count is zero
     int refCount;
-
-    QMutex mutex;
 
     /// The future is already finished. It will take effect immediately
     template <typename ANY>
@@ -699,8 +699,13 @@ public:
         if (isFinished()) {
             return;
         }
-        int index = count++;
+
         incRefCount();
+
+        mutex.lock();
+        int index = count++;
+        QFutureInterface<void>::setProgressRange(0, count);
+        mutex.unlock();
 
         Private::watch(future, this, 0,
                        [=]() {
@@ -711,11 +716,6 @@ public:
             decRefCount();
         });
     }
-
-    int settledCount;
-    int count;
-    bool anyCanceled;
-    bool settleAllMode;
 
     static QSharedPointer<CombinedFuture> create(bool settleAllMode) {
 
@@ -731,17 +731,29 @@ public:
     }
 
 private:
+    int settledCount;
+    int count;
+    bool anyCanceled;
+    bool settleAllMode;
 
     void completeFutureAt(int index) {
         Q_UNUSED(index);
+        mutex.lock();
         settledCount++;
+        QFutureInterface<void>::setProgressValue(settledCount);
+        mutex.unlock();
         checkFulfilled();
     }
 
     void cancelFutureAt(int index) {
         Q_UNUSED(index);
+
+        mutex.lock();
         settledCount++;
         anyCanceled = true;
+        QFutureInterface<void>::setProgressValue(settledCount);
+        mutex.unlock();
+
         checkFulfilled();
     }
 
@@ -1283,7 +1295,7 @@ public:
     }
 
     inline ~Combinator() {
-        if (!combinedFuture.isNull() && combinedFuture->count == 0) {
+        if (!combinedFuture.isNull() && combinedFuture->future().progressMaximum() == 0) {
             // No future added
             combinedFuture->deleteLater();
         }

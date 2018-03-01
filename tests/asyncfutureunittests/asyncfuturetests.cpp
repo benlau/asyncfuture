@@ -1668,5 +1668,29 @@ void AsyncFutureTests::test_Combinator_add_to_already_finished()
 
         QVERIFY(waitUntil(copy.future(), 1000)); // It is already resolved
     }
+}
+
+void AsyncFutureTests::test_Combinator_progressValue()
+{
+
+    {
+        auto d1 = timeout(50);
+        auto d2 = timeout(60);
+        auto d3 = timeout(30);
+
+        auto combinator = combine();
+
+        combinator << d1 << d2 << d3;
+
+        auto future = combinator.future();
+        QCOMPARE(future.progressValue(), 0);
+        QCOMPARE(future.progressMaximum(), 3);
+
+        await(future);
+
+        QCOMPARE(future.progressValue(), 3);
+        QCOMPARE(future.progressMaximum(), 3);
+
+    }
 
 }

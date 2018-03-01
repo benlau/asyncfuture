@@ -87,4 +87,6 @@ private slots:
     void test_Combinator();
 
     void test_Combinator_add_to_already_finished();
+
+    void test_Combinator_progressValue();
 };
