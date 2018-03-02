@@ -43,8 +43,6 @@ observe(future).subscribe([]() {
     qDebug() << "onCancel";
 });
 
-/* It is chainable. Listen from a timeout signal only once */
-observe(timer, &QTimer::timeout).subscribe([=]() { /*…*/ });
 ```
 
 **2. Combine multiple futures with different type into a single future object**
@@ -60,6 +58,8 @@ QFuture<QImage> result = (combine() << f1 << f2).subscribe([=](){
     // Read an image but do not return before timeout
     return f1.result();
 }).future();
+
+QCOMPARE(result.progressMaximum(), 2); // Added since v0.4.1
 
 ```
 

@@ -1680,9 +1680,13 @@ void AsyncFutureTests::test_Combinator_progressValue()
 
         auto combinator = combine();
 
+        auto future = combinator.future();
+
+        QCOMPARE(future.progressValue(), 0);
+        QCOMPARE(future.progressMaximum(), 0);
+
         combinator << d1 << d2 << d3;
 
-        auto future = combinator.future();
         QCOMPARE(future.progressValue(), 0);
         QCOMPARE(future.progressMaximum(), 3);
 
