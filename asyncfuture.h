@@ -392,9 +392,9 @@ void watch(QFuture<T> future,
 template <typename T>
 class DeferredFuture : public QObject, public QFutureInterface<T>{
 public:
-    DeferredFuture(QObject* parent = 0, bool autoDelete = false): QObject(parent),
+    DeferredFuture(QObject* parent = 0, bool autoDeleteArg = false): QObject(parent),
                                          QFutureInterface<T>(QFutureInterface<T>::Running),
-                                         autoDelete(autoDelete),
+                                         autoDelete(autoDeleteArg),
                                          refCount(1) {
     }
 
@@ -688,7 +688,7 @@ protected:
 
 class CombinedFuture: public DeferredFuture<void> {
 public:
-    CombinedFuture(bool settleAllMode = false) : DeferredFuture<void>(), settleAllMode(settleAllMode) {
+    CombinedFuture(bool settleAllModeArg = false) : DeferredFuture<void>(), settleAllMode(settleAllModeArg) {
         settledCount = 0;
         count = 0;
         anyCanceled = false;
@@ -1134,12 +1134,12 @@ public:
 
     template <typename Functor>
     typename std::enable_if<std::is_same<typename Private::RetType<Functor>,bool>::value, void>::type
-    onProgress(Functor onProgress) {
+    onProgress(Functor onProgressArg) {
         QFutureWatcher<T> *watcher = new QFutureWatcher<T>();
 
         auto wrapper = [=]() mutable {
 
-            if (!onProgress()) {
+            if (!onProgressArg()) {
                 watcher->disconnect();
                 watcher->deleteLater();
             }
