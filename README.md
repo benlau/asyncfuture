@@ -268,16 +268,21 @@ For example:
 QFuture<QImage> f1 = QtConcurrent::run(readImage, QString("image.jpg"));
 QFuture<void> f2 = observe(timer, &QTimer::timeout).future();
 
-QFuture<QImage> result = (combine(AllSettled) << f1 << f2).subscribe([=](){
+auto combinator = combine(AllSettled) << f1 << f2;
+
+QFuture<QImage> result = combinator.subscribe([=](){
     // Read an image but do not return before timeout
     return f1.result();
 }).future();
 
+QCOMPARE(combinator.progressMaximum, 2);
 ```
 
-Once all the observed futures finished, the contained future will be finished too.  And it will be cancelled immediately if any one of the observed future is cancelled in fail fast mode. In case you wish the cancellation take place after all the futures finished, you should set mode to `AllSettled`.
+Once all the observed futures finished, the contained future will be finished too.  And it will be cancelled immediately if any one of the observed future is cancelled in fail fast mode. In case you want the cancellation take place after all the futures finished, you should set mode to `AsyncFuture::AllSettled`.
 
-Since v3.6, you may assign a deferred object to Combinator directly.
+Since v0.4.1, the `progressValue` and `progressMaximum` of the obtained future will be set.
+
+Since v0.3.6, you may assign a deferred object to Combinator directly.
 
 Example 
 
