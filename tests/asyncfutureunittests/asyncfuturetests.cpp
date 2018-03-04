@@ -205,13 +205,15 @@ void AsyncFutureTests::test_QtConcurrent_map()
 
     future.pause();
 
-    await(future, 2000);
-
     QCOMPARE(paused, false);
 
 #if QT_VERSION <= QT_VERSION_CHECK(5, 7, 1)
+    await(future, 10000);
+
     QCOMPARE(future.isFinished(), true);
 #else
+    await(future, 5000);
+
     QCOMPARE(future.isFinished(), false);
 
     future.resume();
