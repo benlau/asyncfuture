@@ -27,7 +27,7 @@ void Cookbook::run_mapped()
 
     QString input = QtShell::realpath_strip(QtShell::pwd(), QTest::currentTestFunction());
 
-    QtShell::mkdir(input);
+    QtShell::mkdir("-p", input);
 
     QtShell::touch(input + "/1.json");
     QtShell::touch(input + "/2.json");

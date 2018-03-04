@@ -205,7 +205,7 @@ void AsyncFutureTests::test_QtConcurrent_map()
 
     future.pause();
 
-    Automator::wait(2000);
+    await(future, 2000);
 
     QCOMPARE(paused, false);
 
@@ -1416,31 +1416,15 @@ void AsyncFutureTests::test_Deferred_track()
 
 void AsyncFutureTests::test_Deferred_track_started()
 {
-
-    QSemaphore semaphore(1);
-
-    auto worker = [&](int i) {
-        Q_UNUSED(i);
-        semaphore.acquire();
-        Automator::wait(10);
-        semaphore.release();
-    };
-
-    QThreadPool pool;
-    pool.setMaxThreadCount(1);
-
     QFuture<void> future;
     QFutureWatcher<void> watcher;
-    semaphore.acquire();
 
     QList<int> input;
     input << 0 << 1 << 2;
 
     future = observe(QtConcurrent::run([=]() { })).subscribe([=]() {
-        return QtConcurrent::map(input , worker);
+        return QtConcurrent::map(input , square);
     }).future();
-
-    watcher.setFuture(future);
 
     bool started = false;
 
@@ -1448,10 +1432,12 @@ void AsyncFutureTests::test_Deferred_track_started()
         started = true;
     });
 
+    watcher.setFuture(future);
+
     QTRY_COMPARE(started, true);
 
-    semaphore.release();
-    await(future);
+    await(future, 1000);
+    QCOMPARE(future.isFinished(), true);
 }
 
 void AsyncFutureTests::test_Deferred_setProgress()
