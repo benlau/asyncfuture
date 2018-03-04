@@ -32,7 +32,9 @@ private slots:
 
     void test_QtConcurrent_exception();
 
+#if QT_VERSION > QT_VERSION_CHECK(5, 7, 1)
     void test_QtConcurrent_map();
+#endif
 
     void test_function_traits();
 
