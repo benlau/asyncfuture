@@ -209,6 +209,11 @@ void AsyncFutureTests::test_QtConcurrent_map()
 
     QCOMPARE(paused, false);
 
+#if QT_VERSION <= QT_VERSION_CHECK(5, 7, 1)
+    QCOMPARE(future.isFinished(), true);
+#else
+    QCOMPARE(future.isFinished(), false);
+
     future.resume();
 
     await(future, 1000);
@@ -218,6 +223,7 @@ void AsyncFutureTests::test_QtConcurrent_map()
     QCOMPARE(started, true);
     QCOMPARE(paused, true);
     QCOMPARE(resumed, true);
+#endif
 }
 
 #define TYPEOF(x) std::decay<decltype(x)>::type
