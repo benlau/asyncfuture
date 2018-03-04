@@ -56,9 +56,6 @@ void Cookbook::run_mapped()
         /////////////////////////
         /* End of sample code */
 
-        QCOMPARE(future.progressMaximum(), 0);
-        QCOMPARE(future.progressValue(), 0);
-
         Test::await(future);
 
         QCOMPARE(future.progressValue(), 3);

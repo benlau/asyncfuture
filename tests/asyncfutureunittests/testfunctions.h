@@ -78,7 +78,6 @@ namespace Test {
         }
 
         QFutureWatcher<T> watcher;
-        watcher.setFuture(future);
         QEventLoop loop;
 
         if (timeout > 0) {
@@ -86,6 +85,7 @@ namespace Test {
         }
 
         QObject::connect(&watcher, SIGNAL(finished()), &loop, SLOT(quit()));
+        watcher.setFuture(future);
 
         loop.exec();
     }

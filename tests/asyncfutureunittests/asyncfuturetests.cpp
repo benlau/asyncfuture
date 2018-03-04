@@ -174,27 +174,13 @@ void AsyncFutureTests::test_QtConcurrent_exception()
 
 void AsyncFutureTests::test_QtConcurrent_map()
 {
-    QSemaphore semaphore(1);
-
-    auto worker = [&](int i) {
-        Q_UNUSED(i);
-        semaphore.acquire();
-        Automator::wait(10);
-        semaphore.release();
-    };
-
-    QThreadPool pool;
-    pool.setMaxThreadCount(1);
-
     QFuture<void> future;
     QFutureWatcher<void> watcher;
-    semaphore.acquire();
 
     QList<int> input;
     input << 0 << 1 << 2;
 
-    future = QtConcurrent::map(input , worker);
-    watcher.setFuture(future);
+    future = QtConcurrent::map(input, square);
     bool started = false;
     bool paused = false;
     bool resumed = false;
@@ -211,21 +197,27 @@ void AsyncFutureTests::test_QtConcurrent_map()
         resumed = true;
     });
 
+    watcher.setFuture(future);
+
     QTRY_COMPARE(started, true);
     QTRY_COMPARE(paused, false);
     QTRY_COMPARE(resumed, false);
 
     future.pause();
 
-    QEXPECT_FAIL("", "It is not possible to pause the execution of QtConcurrent::map", Continue);
-    QTRY_COMPARE_WITH_TIMEOUT(paused, true, 300);
-    QTRY_COMPARE(resumed, false);
+    Automator::wait(2000);
 
-    /// Without resume, it can't emit finished signal
+    QCOMPARE(paused, false);
+
     future.resume();
 
-    semaphore.release();
-    await(future);
+    await(future, 1000);
+
+    QCOMPARE(future.isFinished(), true);
+
+    QCOMPARE(started, true);
+    QCOMPARE(paused, true);
+    QCOMPARE(resumed, true);
 }
 
 #define TYPEOF(x) std::decay<decltype(x)>::type
