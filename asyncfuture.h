@@ -1,3 +1,4 @@
+/* AsyncFuture Version: 0.4.1 */
 #pragma once
 #include <QFuture>
 #include <QMetaMethod>

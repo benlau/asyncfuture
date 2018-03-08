@@ -6,6 +6,7 @@ addons:
   apt:
     packages:
     - valgrind
+    - jq
 compiler:
   - gcc
 before_install:
@@ -14,6 +15,9 @@ before_install:
     - go get qpm.io/qpm
     - sh -e /etc/init.d/xvfb start
 script:
+    - VERSION=$(jq .version.label qpm.json)
+    - VERSION=$(eval echo $VERSION)
+    - if ! head -n 1 asyncfuture.h | grep -q $VERSION; then echo "Version string mismatched"; exit -1 ;fi
     - git clone https://github.com/benlau/qtci.git
     - source qtci/path.env
     - qt-5.7
