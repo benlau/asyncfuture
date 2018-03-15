@@ -343,7 +343,7 @@ Register a onCompleted and/or onCanceled callback to the observed QFuture object
 
 Remarks: Before v0.3.2, the callback will be executed in the current thread.
 
-See [OnCompleted Callback Function](#oncompleted-callback-funcion)
+See [Subscribe Callback Function](#subscribe-callback-funcion)
 
 Example:
 
@@ -494,7 +494,7 @@ return defer.future(); // It is a future with progress value same as the mappedF
 Advanced Topics
 =======
 
-OnCompleted Callback Funcion
+Subscribe Callback Funcion
 ---------------
 
 In subscribe() / context(), you may pass a function with zero or one argument as the onCompleted callback. If you give it an argument, the type must be either of T or QFuture<T>. That would obtain the result or the observed future itself.
