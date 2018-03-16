@@ -1016,6 +1016,9 @@ static DeferredFuture<DeferredType>* execute(QFuture<T> future, QObject* context
 /* Start of AsyncFuture Namespace */
 
 template <typename T>
+class Deferred;
+
+template <typename T>
 class Observable {
 protected:
     QFuture<T> m_future;
@@ -1171,6 +1174,14 @@ public:
 
     void onCanceled(std::function<void()> func) {
         subscribe([]() {}, func);
+    }
+
+    template <typename ANY>
+    void onCanceled(Deferred<ANY> object) {
+        subscribe([]() {}, [=]() {
+            auto o = object;
+            o.cancel();
+        });
     }
 
 private:
