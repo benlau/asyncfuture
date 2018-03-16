@@ -1169,6 +1169,10 @@ public:
         watcher->setFuture(m_future);
     }
 
+    void onCanceled(std::function<void()> func) {
+        subscribe([]() {}, func);
+    }
+
 private:
     template <typename ObservableType, typename RetType, typename Completed>
     Observable<ObservableType> _context(QObject* contextObject, Completed functor)  {

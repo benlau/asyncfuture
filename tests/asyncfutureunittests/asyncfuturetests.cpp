@@ -997,6 +997,23 @@ void AsyncFutureTests::test_Observable_onProgress()
     }
 }
 
+void AsyncFutureTests::test_Observable_onCanceled()
+{
+    bool canceled = false;
+    auto defer = deferred<void>();
+
+    defer.onCanceled([&]() {
+        canceled = true;
+    });
+
+    defer.cancel();
+    QCOMPARE(canceled, false);
+    await(defer.future());
+    Automator::wait(10);
+
+    QCOMPARE(canceled, true);
+}
+
 
 void AsyncFutureTests::test_Deferred()
 {

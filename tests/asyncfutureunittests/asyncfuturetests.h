@@ -73,6 +73,8 @@ private slots:
 
     void test_Observable_onProgress();
 
+    void test_Observable_onCanceled();
+
     void test_Deferred();
     void test_Deferred_complete_future();
     void test_Deferred_complete_future_future();

@@ -387,7 +387,7 @@ In the above example, the result of `validating` is supposed to be true. However
 
 **void Observable&lt;T&gt;::onProgress(Functor callback)**
 
-Listens the `progressValueChanged` and `progressRangeChanged` signal from the observed future then trigger the callback. The callback function may return nothing or a boolean value. If the boolean value is false, it will remove the listener such that the callback may not trigger anymore.
+Listens the `progressValueChanged` and `progressRangeChanged` signal from the observed future then trigger the callback. The callback function may return nothing or a boolean value. If the boolean value is false, it will remove the listener such that the callback will not be  triggered anymore.
 
 Example
 
