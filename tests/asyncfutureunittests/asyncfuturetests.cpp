@@ -1033,6 +1033,26 @@ void AsyncFutureTests::test_Observable_onCanceled_deferred()
     QCOMPARE(d2.future().isCanceled(), true);
 }
 
+void AsyncFutureTests::test_Observable_onCanceled_future()
+{
+    auto d1 = deferred<int>();
+    auto d2 = deferred<int>();
+
+    d1.onCanceled(d2.future());
+
+    d1.future().cancel();
+
+    QCOMPARE(d1.future().isCanceled(), true);
+    QCOMPARE(d1.future().isFinished(), false);
+
+    QCOMPARE(d2.future().isCanceled(), false);
+    QCOMPARE(d2.future().isFinished(), false);
+
+    QTRY_COMPARE(d2.future().isCanceled(), true);
+
+    QCOMPARE(d2.future().isFinished(), false);
+}
+
 
 void AsyncFutureTests::test_Deferred()
 {

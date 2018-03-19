@@ -77,12 +77,15 @@ private slots:
 
     void test_Observable_onCanceled_deferred();
 
+    void test_Observable_onCanceled_future();
+
     void test_Deferred();
     void test_Deferred_complete_future();
     void test_Deferred_complete_future_future();
 
     void test_Deferred_complete_list();
     void test_Deferred_cancel_future();
+
     void test_Deferred_across_thread();
     void test_Deferred_inherit();
     void test_Deferred_track();

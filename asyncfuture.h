@@ -1184,6 +1184,14 @@ public:
         });
     }
 
+    template <typename ANY>
+    void onCanceled(QFuture<ANY> future) {
+        subscribe([]() {}, [=]() {
+            auto f = future;
+            f.cancel();
+        });
+    }
+
 private:
     template <typename ObservableType, typename RetType, typename Completed>
     Observable<ObservableType> _context(QObject* contextObject, Completed functor)  {
