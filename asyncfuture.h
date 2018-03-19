@@ -168,6 +168,16 @@ template <typename C, typename R, typename Arg0, typename ...Args>
 struct arg0_traits<R(C::*)(Arg0, Args...)> {
     typedef Arg0 type;
 };
+    
+template <typename R>
+struct arg0_traits<R()> {
+  typedef void type;
+};
+
+template <typename R, typename Arg0, typename ...Args>
+struct arg0_traits<R(Arg0, Args...)> {
+  typedef Arg0 type;
+};
 
 // Obtain the observable type according to the Functor
 template <typename T>
