@@ -237,7 +237,7 @@ struct ret_type_is_future {
 template <typename Functor>
 struct arg0_is_future {
     enum {
-        value = future_traits<Arg0Type<Functor>>::is_future
+        value = future_traits<typename std::decay<Arg0Type<Functor>>::type>::is_future
     };
 };
 
