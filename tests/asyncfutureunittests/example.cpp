@@ -12,6 +12,13 @@ using namespace AsyncFuture;
 using namespace AsyncFutureUtils;
 using namespace Test;
 
+static QString delayedFakeRead(const QString& fileName) {
+    Q_UNUSED(fileName);
+
+    Automator::wait(100);
+    return "";
+}
+
 Example::Example(QObject *parent) : QObject(parent)
 {
 
@@ -516,5 +523,29 @@ void Example::example_CancellationToken()
 
     QCOMPARE(sequence, expectedSquence);
 
+}
+
+void Example::example_Combinator_timeout()
+{
+    QFuture<QString> f1 = QtConcurrent::run(delayedFakeRead, QString("input1.txt"));
+
+    QFuture<QString> f2 = QtConcurrent::run(delayedFakeRead, QString("input2.txt"));
+
+    auto combinator = AsyncFuture::combine();
+    combinator << f1 << f2;
+
+    auto defer = deferred<void>();
+
+    defer.complete(combinator.future());
+    defer.cancel(AsyncFutureUtils::timeout(10));
+
+    auto returningFuture = defer.future();
+
+    await(returningFuture);
+
+    QCOMPARE(returningFuture.isCanceled(), true);
+    QCOMPARE(returningFuture.isFinished(), true);
+
+    QCOMPARE(returningFuture.progressMaximum(), 2);
 }
 

@@ -29,5 +29,7 @@ private slots:
     void example_qtconcurrent_mapped_cancel();
 
     void example_CancellationToken();
+
+    void example_Combinator_timeout();
 };
 
