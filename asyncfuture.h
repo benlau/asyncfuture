@@ -403,9 +403,9 @@ void watch(QFuture<T> future,
 template <typename T>
 class DeferredFuture : public QObject, public QFutureInterface<T>{
 public:
-    DeferredFuture(QObject* parent = 0, bool autoDeleteArg = false): QObject(parent),
+
+    DeferredFuture(QObject* parent = 0): QObject(parent),
                                          QFutureInterface<T>(QFutureInterface<T>::Running),
-                                         autoDelete(autoDeleteArg),
                                          refCount(1) {
     }
 
@@ -477,10 +477,6 @@ public:
             return;
         }
         QFutureInterface<T>::reportFinished();
-
-        if (autoDelete) {
-            deleteLater();
-        }
     }
 
     template <typename R>
@@ -490,10 +486,6 @@ public:
         }
         reportResult(value);
         QFutureInterface<T>::reportFinished();
-
-        if (autoDelete) {
-            deleteLater();
-        }
     }
 
     template <typename R>
@@ -504,10 +496,6 @@ public:
 
         reportResult(value);
         QFutureInterface<T>::reportFinished();
-
-        if (autoDelete) {
-            deleteLater();
-        }
     }
 
     template <typename R>
@@ -569,10 +557,6 @@ public:
         }
         QFutureInterface<T>::reportCanceled();
         QFutureInterface<T>::reportFinished();
-
-        if (autoDelete) {
-            this->deleteLater();
-        }
     }
 
     template <typename Member>
@@ -620,24 +604,15 @@ public:
         if (count <= 0) {
             cancel();
 
-            // In case it is already resolved
-            if (autoDelete) {
-                deleteLater();
-            }
+            deleteLater();
         }
     }
 
-    /// Create a DeferredFugture instance in a shared pointer
+    /// Create a DeferredFugture instance and manage by a shared pointer
     static QSharedPointer<DeferredFuture<T> > create() {
 
         auto deleter = [](DeferredFuture<T> *object) {
-            if (object->isFinished()) {
-                // If that is already resolved, it is not necessary to keep it in memory
-                object->deleteLater();
-            } else {
-                object->autoDelete = true;
-                object->decRefCount();
-            }
+            object->decRefCount();
         };
 
         QSharedPointer<DeferredFuture<T> > ptr(new DeferredFuture<T>(), deleter);
@@ -666,9 +641,6 @@ public:
     }
 
 protected:
-    // Enable auto delete if the refCount is dropped to zero or it is completed/canceled
-    bool autoDelete;
-
     QMutex mutex;
 
 private:
@@ -733,7 +705,6 @@ public:
         auto deleter = [](CombinedFuture *object) {
             // Regardless of the no. of instance of QSharedPointer<CombinedFuture>,
             // it only increase the reference by one.
-            object->autoDelete = true;
             object->decRefCount();
         };
 
@@ -991,9 +962,9 @@ eval(Functor functor, QFuture<T> future) {
  * e.g DeferredFuture<int> = Value<QFuture<int>>
  */
 template <typename DeferredType, typename RetType, typename T, typename Completed, typename Canceled>
-static DeferredFuture<DeferredType>* execute(QFuture<T> future, QObject* contextObject, Completed onCompleted, Canceled onCanceled) {
+static QFuture<DeferredType> execute(QFuture<T> future, QObject* contextObject, Completed onCompleted, Canceled onCanceled) {
 
-    DeferredFuture<DeferredType>* defer = new DeferredFuture<DeferredType>(nullptr, true);
+    auto defer = DeferredFuture<DeferredType>::create();
 
     watch(future,
           contextObject,
@@ -1017,9 +988,8 @@ static DeferredFuture<DeferredType>* execute(QFuture<T> future, QObject* context
         defer->cancel(contextObject, &QObject::destroyed);
     }
 
-    return defer;
+    return defer->future();
 }
-
 
 } // End of Private Namespace
 
@@ -1206,23 +1176,23 @@ private:
     template <typename ObservableType, typename RetType, typename Completed>
     Observable<ObservableType> _context(QObject* contextObject, Completed functor)  {
 
-        auto defer = Private::execute<ObservableType, RetType>(m_future,
+        auto future = Private::execute<ObservableType, RetType>(m_future,
                                                                contextObject,
                                                                functor,
                                                                [](){});
 
-        return Observable<ObservableType>(defer->future());
+        return Observable<ObservableType>(future);
     }
 
     template <typename ObservableType, typename RetType, typename Completed, typename Canceled>
     Observable<ObservableType> _subscribe(Completed onCompleted, Canceled onCanceled) {       
 
-        auto defer = Private::execute<ObservableType, RetType>(m_future,
+        auto future = Private::execute<ObservableType, RetType>(m_future,
                                                                0,
                                                                onCompleted,
                                                                onCanceled);
 
-        return Observable<ObservableType>(defer->future());
+        return Observable<ObservableType>(future);
     }
 
 };
@@ -1372,9 +1342,9 @@ auto observe(QObject* object, Member pointToMemberFunction)
 
     typedef typename Private::signal_traits<Member>::result_type RetType;
 
-    auto defer = new Private::DeferredFuture<RetType>(nullptr, true);
+    auto defer = Private::DeferredFuture<RetType>::create();
 
-    auto proxy = new Private::Proxy<RetType>(defer);
+    auto proxy = new Private::Proxy<RetType>(defer.data());
 
     defer->cancel(object, &QObject::destroyed);
 
@@ -1390,9 +1360,9 @@ auto observe(QObject* object, Member pointToMemberFunction)
 
 inline Observable<QVariant> observe(QObject *object,QString signal)  {
 
-    auto defer = new Private::DeferredFuture<QVariant>(nullptr, true);
+    auto defer = Private::DeferredFuture<QVariant>::create();
 
-    auto proxy = new Private::Proxy2(defer);
+    auto proxy = new Private::Proxy2(defer.data());
 
     defer->cancel(object, &QObject::destroyed);
 
