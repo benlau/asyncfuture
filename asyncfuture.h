@@ -603,7 +603,6 @@ public:
 
         if (count <= 0) {
             cancel();
-
             deleteLater();
         }
     }

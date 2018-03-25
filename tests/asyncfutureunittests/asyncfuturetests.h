@@ -24,6 +24,10 @@ signals:
 public slots:
 
 private slots:
+    void initTestCase();
+
+    void cleanup();
+
     void test_QFuture_cancel();
 
     void test_QFuture_isResultReadyAt();
@@ -98,4 +102,7 @@ private slots:
     void test_Combinator_add_to_already_finished();
 
     void test_Combinator_progressValue();
+
+    void test_alive();
+
 };

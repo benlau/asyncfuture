@@ -4,6 +4,7 @@
 #include <QFutureWatcher>
 #include <Automator>
 #include <QFutureWatcher>
+#include "trackingdata.h"
 #include "testfunctions.h"
 #include "asyncfuture.h"
 #include "asyncfuturetests.h"
@@ -33,6 +34,29 @@ AsyncFutureTests::AsyncFutureTests(QObject *parent) : QObject(parent)
         QTest::qExec(this, 0, 0); // Autotest detect available test cases of a QObject by looking for "QTest::qExec" in source code
     };
     Q_UNUSED(ref);
+}
+
+void AsyncFutureTests::initTestCase()
+{
+    {
+        QCOMPARE(TrackingData::aliveCount(), 0);
+
+        TrackingData d1;
+        Q_UNUSED(d1);
+        QCOMPARE(TrackingData::aliveCount(), 1);
+
+        TrackingData d2;
+        Q_UNUSED(d2);
+        QCOMPARE(TrackingData::aliveCount(), 2);
+    }
+
+    QCOMPARE(TrackingData::aliveCount(), 0);
+
+}
+
+void AsyncFutureTests::cleanup()
+{
+    QCOMPARE(TrackingData::aliveCount(), 0);
 }
 
 static int square(int value) {
@@ -1735,5 +1759,33 @@ void AsyncFutureTests::test_Combinator_progressValue()
         QCOMPARE(future.progressMaximum(), 3);
 
     }
+
+}
+
+void AsyncFutureTests::test_alive()
+{
+
+    {
+        auto d1 = deferred<TrackingData>();
+        auto d2 = deferred<TrackingData>();
+
+        d2.complete(d1.future());
+
+        QCOMPARE(TrackingData::aliveCount(), 0);
+
+        {
+            TrackingData dummy;
+            d1.complete(dummy);
+            QCOMPARE(TrackingData::aliveCount(), 1);
+        }
+
+        QCOMPARE(TrackingData::aliveCount(), 1);
+
+        await(d2.future());
+        Automator::wait(10);
+    }
+
+    Automator::wait(10);
+    QCOMPARE(TrackingData::aliveCount(), 0);
 
 }
