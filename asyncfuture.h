@@ -427,29 +427,29 @@ public:
             watcher->deleteLater();
         });
 
-        QObject::connect(watcher, &QFutureWatcher<ANY>::progressValueChanged, [=](int value) {
+        QObject::connect(watcher, &QFutureWatcher<ANY>::progressValueChanged, this, [=](int value) {
             if (thiz.isNull()) {
                 return;
             }
             thiz->setProgressValue(value);
         });
 
-        QObject::connect(watcher, &QFutureWatcher<ANY>::progressRangeChanged, [=](int min, int max) {
+        QObject::connect(watcher, &QFutureWatcher<ANY>::progressRangeChanged, this, [=](int min, int max) {
             if (thiz.isNull()) {
                 return;
             }
             thiz->setProgressRange(min, max);
         });
 
-        QObject::connect(watcher, &QFutureWatcher<ANY>::started, [=](){
+        QObject::connect(watcher, &QFutureWatcher<ANY>::started, this, [=](){
             thiz->reportStarted();
         });
 
-        QObject::connect(watcher, &QFutureWatcher<ANY>::paused, [=](){
+        QObject::connect(watcher, &QFutureWatcher<ANY>::paused, this, [=](){
             thiz->setPaused(true);
         });
 
-        QObject::connect(watcher, &QFutureWatcher<ANY>::resumed, [=](){
+        QObject::connect(watcher, &QFutureWatcher<ANY>::resumed, this, [=](){
             thiz->setPaused(false);
         });
 
@@ -603,7 +603,7 @@ public:
 
         if (count <= 0) {
             cancel();
-            deleteLater();
+            delete this;
         }
     }
 
@@ -1349,8 +1349,7 @@ auto observe(QObject* object, Member pointToMemberFunction)
 
     proxy->bind(object, pointToMemberFunction);
     proxy->callback = [=](Private::Value<RetType> value) {
-        defer->complete(value);
-        proxy->deleteLater();
+        defer->complete(value); // proxy is destroyed automatically
     };
 
     Observable< typename Private::signal_traits<Member>::result_type> observer(defer->future());
@@ -1367,8 +1366,7 @@ inline Observable<QVariant> observe(QObject *object,QString signal)  {
 
     proxy->bind(object, signal);
     proxy->callback = [=](QVariant value) {
-        defer->complete(value);
-        proxy->deleteLater();
+        defer->complete(value); // proxy is destroyed automatically
     };
 
     Observable<QVariant> observer(defer->future());
