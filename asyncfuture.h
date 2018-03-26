@@ -414,12 +414,6 @@ template <typename T>
 class DeferredFuture : public QObject, public QFutureInterface<T>{
 public:
 
-    DeferredFuture(QObject* parent = 0): QObject(parent),
-                                         QFutureInterface<T>(QFutureInterface<T>::Running),
-                                         refCount(1),
-                                         strongRefCount(0) {
-    }
-
     ~DeferredFuture() {
         cancel();
     }
@@ -670,6 +664,12 @@ public:
     }
 
 protected:
+    DeferredFuture(QObject* parent = 0): QObject(parent),
+                                         QFutureInterface<T>(QFutureInterface<T>::Running),
+                                         refCount(1),
+                                         strongRefCount(0) {
+    }
+
     QMutex mutex;
 
 private:
@@ -1377,6 +1377,7 @@ auto observe(QObject* object, Member pointToMemberFunction)
     typedef typename Private::signal_traits<Member>::result_type RetType;
 
     auto defer = Private::DeferredFuture<RetType>::create();
+    defer->decStrongRef();
 
     auto proxy = new Private::Proxy<RetType>(defer.data());
 
@@ -1394,6 +1395,7 @@ auto observe(QObject* object, Member pointToMemberFunction)
 inline Observable<QVariant> observe(QObject *object,QString signal)  {
 
     auto defer = Private::DeferredFuture<QVariant>::create();
+    defer->decStrongRef();
 
     auto proxy = new Private::Proxy2(defer.data());
 
