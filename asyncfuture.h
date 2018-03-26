@@ -1414,6 +1414,7 @@ inline Observable<QVariant> observe(QObject *object,QString signal)  {
         };
     } else {
         defer->cancel();
+        defer->decRefCount();
     }
 
     Observable<QVariant> observer(future);
