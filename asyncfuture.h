@@ -1380,16 +1380,18 @@ auto observe(QObject* object, Member pointToMemberFunction)
     typedef typename Private::signal_traits<Member>::result_type RetType;
 
     auto defer = Private::DeferredFuture<RetType>::create();
-    defer->decStrongRef();
 
-    auto proxy = new Private::Proxy<RetType>(defer.data());
+    auto proxy = new Private::Proxy<RetType>(nullptr);
 
-    defer->cancel(object, &QObject::destroyed);
+    QObject::connect(object, &QObject::destroyed, proxy, [=]() {
+       defer->cancel();
+       delete proxy;
+    });
 
     proxy->bind(object, pointToMemberFunction);
     proxy->callback = [=](Private::Value<RetType> value) {
-        defer->complete(value); // proxy is destroyed automatically
-        defer->decRefCount();
+        defer->complete(value);
+        delete proxy;
     };
 
     Observable< typename Private::signal_traits<Member>::result_type> observer(defer->future());
@@ -1399,22 +1401,24 @@ auto observe(QObject* object, Member pointToMemberFunction)
 inline Observable<QVariant> observe(QObject *object,QString signal)  {
 
     auto defer = Private::DeferredFuture<QVariant>::create();
-    defer->decStrongRef();
 
     auto future = defer->future();
 
-    auto proxy = new Private::Proxy2(defer.data());
+    auto proxy = new Private::Proxy2(nullptr);
 
-    defer->cancel(object, &QObject::destroyed);
+    QObject::connect(object, &QObject::destroyed, proxy, [=]() {
+       defer->cancel();
+       delete proxy;
+    });
 
     if (proxy->bind(object, signal)) {
         proxy->callback = [=](QVariant value) {
-            defer->complete(value); // proxy is destroyed automatically
-            defer->decRefCount();
+            defer->complete(value);
+            delete proxy;
         };
     } else {
         defer->cancel();
-        defer->decRefCount();
+        delete proxy;
     }
 
     Observable<QVariant> observer(future);
