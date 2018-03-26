@@ -566,10 +566,11 @@ public:
 
     template <typename Member>
     void cancel(QObject* sender, Member member) {
-
+        incRefCount();
         QObject::connect(sender, member,
                          this, [=]() {
             this->cancel();
+            decRefCount();
         });
     }
 
@@ -861,7 +862,7 @@ public:
     QMetaObject::Connection conn;
     QPointer<QObject> sender;
 
-    inline void bind(QObject* source,QString signal) {
+    inline bool bind(QObject* source,QString signal) {
         sender = source;
 
         // Remove leading number
@@ -873,7 +874,7 @@ public:
 
         if (index < 0) {
             qWarning() << "AsyncFuture::Private::Proxy: No such signal: " << signal;
-            return;
+            return false;
         }
 
         QMetaMethod method = source->metaObject()->method(index);
@@ -889,6 +890,8 @@ public:
         if (!conn) {
             qWarning() << "AsyncFuture::Private::Proxy: Failed to bind signal";
         }
+
+        return true;
     }
 
     inline int qt_metacall(QMetaObject::Call _c, int _id, void **_a) {
@@ -1398,17 +1401,22 @@ inline Observable<QVariant> observe(QObject *object,QString signal)  {
     auto defer = Private::DeferredFuture<QVariant>::create();
     defer->decStrongRef();
 
+    auto future = defer->future();
+
     auto proxy = new Private::Proxy2(defer.data());
 
     defer->cancel(object, &QObject::destroyed);
 
-    proxy->bind(object, signal);
-    proxy->callback = [=](QVariant value) {
-        defer->complete(value); // proxy is destroyed automatically
-        defer->decRefCount();
-    };
+    if (proxy->bind(object, signal)) {
+        proxy->callback = [=](QVariant value) {
+            defer->complete(value); // proxy is destroyed automatically
+            defer->decRefCount();
+        };
+    } else {
+        defer->cancel();
+    }
 
-    Observable<QVariant> observer(defer->future());
+    Observable<QVariant> observer(future);
     return observer;
 }
 

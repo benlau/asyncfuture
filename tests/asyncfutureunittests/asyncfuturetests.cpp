@@ -741,6 +741,7 @@ void AsyncFutureTests::test_Observable_signal_by_signature()
         auto *proxy = new SignalProxy(this);
 
         QFuture<QVariant> iFuture = observe(proxy, SIGNAL(noSuchSignal())).future();
+        QCOMPARE(iFuture.isCanceled(), true);
         Q_UNUSED(iFuture);
 
         delete proxy;
