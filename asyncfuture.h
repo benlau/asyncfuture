@@ -341,6 +341,8 @@ void watch(QFuture<T> future,
            Finished finished,
            Canceled canceled) {
 
+    Q_ASSERT(owner);
+    QPointer<QObject> ownerAlive = owner;
 
     QFutureWatcher<T> *watcher = new QFutureWatcher<T>();
 
@@ -354,15 +356,19 @@ void watch(QFuture<T> future,
 
         QObject::connect(watcher, &QFutureWatcher<T>::finished,
                          contextObject, [=]() {
-            watcher->disconnect();
-            watcher->deleteLater();
+            delete watcher;
+            if (ownerAlive.isNull()) {
+                return;
+            }
             finished();
         });
 
         QObject::connect(watcher, &QFutureWatcher<T>::canceled,
                          contextObject, [=]() {
-            watcher->disconnect();
-            watcher->deleteLater();
+            delete watcher;
+            if (ownerAlive.isNull()) {
+                return;
+            }
             canceled();
         });
 
@@ -370,22 +376,26 @@ void watch(QFuture<T> future,
 
         QObject::connect(watcher, &QFutureWatcher<T>::finished,
                          [=]() {
-            watcher->disconnect();
-            watcher->deleteLater();
+            delete watcher;
+            if (ownerAlive.isNull()) {
+                return;
+            }
             finished();
         });
 
         QObject::connect(watcher, &QFutureWatcher<T>::canceled,
                          [=]() {
-            watcher->disconnect();
-            watcher->deleteLater();
+            delete watcher;
+            if (ownerAlive.isNull()) {
+                return;
+            }
             canceled();
         });
     }
 
     if ((QThread::currentThread() != QCoreApplication::instance()->thread()) &&
          (contextObject == 0 || QThread::currentThread() != contextObject->thread())) {
-        // Move watcher to main thread
+        // Move watcher to main thread if context object is not set.
         watcher->moveToThread(QCoreApplication::instance()->thread());
     }
 
@@ -406,7 +416,8 @@ public:
 
     DeferredFuture(QObject* parent = 0): QObject(parent),
                                          QFutureInterface<T>(QFutureInterface<T>::Running),
-                                         refCount(1) {
+                                         refCount(1),
+                                         strongRefCount(0) {
     }
 
     ~DeferredFuture() {
@@ -602,19 +613,38 @@ public:
         mutex.unlock();
 
         if (count <= 0) {
-            cancel();
+            if (!isFinished()) {
+                cancel();
+            }
+        }
+
+        if (strongRefCount == 0 && isFinished()) {
             delete this;
         }
+    }
+
+    void incStrongRef() {
+        mutex.lock();
+        strongRefCount++;
+        mutex.unlock();
+    }
+
+    void decStrongRef() {
+        mutex.lock();
+        strongRefCount--;
+        mutex.unlock();
     }
 
     /// Create a DeferredFugture instance and manage by a shared pointer
     static QSharedPointer<DeferredFuture<T> > create() {
 
         auto deleter = [](DeferredFuture<T> *object) {
+            object->decStrongRef();
             object->decRefCount();
         };
 
         QSharedPointer<DeferredFuture<T> > ptr(new DeferredFuture<T>(), deleter);
+        ptr->incStrongRef();
         return ptr;
     }
 
@@ -644,8 +674,11 @@ protected:
 
 private:
 
-    // A virtual reference count system. If autoDelete is not true, it won't delete the object even the count is zero
+    // A reference count system. If it is dropped to zero, it will cancel this object
     int refCount;
+
+    // Unless it is zero, this object will not be destroyed.
+    int strongRefCount;
 
     /// The future is already finished. It will take effect immediately
     template <typename ANY>
@@ -704,10 +737,12 @@ public:
         auto deleter = [](CombinedFuture *object) {
             // Regardless of the no. of instance of QSharedPointer<CombinedFuture>,
             // it only increase the reference by one.
+            object->decStrongRef();
             object->decRefCount();
         };
 
         QSharedPointer<CombinedFuture> ptr(new CombinedFuture(settleAllMode), deleter);
+        ptr->incStrongRef();
         return ptr;
     }
 
@@ -1187,7 +1222,7 @@ private:
     Observable<ObservableType> _subscribe(Completed onCompleted, Canceled onCanceled) {       
 
         auto future = Private::execute<ObservableType, RetType>(m_future,
-                                                               0,
+                                                               QCoreApplication::instance(),
                                                                onCompleted,
                                                                onCanceled);
 

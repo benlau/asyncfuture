@@ -315,15 +315,15 @@ void AsyncFutureTests::test_function_traits()
 
 void AsyncFutureTests::test_private_DeferredFuture()
 {
-    Private::DeferredFuture<void> defer;
+    auto defer = Private::DeferredFuture<void>::create();
 
     auto worker = [=]() {
         Automator::wait(50);
     };
 
-    defer.complete(QtConcurrent::run(worker));
+    defer->complete(QtConcurrent::run(worker));
 
-    QFuture<void> future = defer.future();
+    QFuture<void> future = defer->future();
     QCOMPARE(future.isFinished(), false);
     QCOMPARE(future.isRunning(), true);
 
@@ -331,6 +331,7 @@ void AsyncFutureTests::test_private_DeferredFuture()
 
     QCOMPARE(future.isFinished(), true);
     QCOMPARE(future.isRunning(), false);
+
 }
 
 
@@ -397,7 +398,6 @@ void AsyncFutureTests::test_observe_future_future()
 
     QList<int> result = future.results();
     QCOMPARE(result.size(), 4);
-
 }
 
 void AsyncFutureTests::test_Observable_context()
@@ -621,8 +621,6 @@ void AsyncFutureTests::test_Observable_context_return_future()
         QFuture<int> future = QtConcurrent::run(internalWorker);
         return future;
     };
-
-    //@TODO
 
     QFuture<bool> bFuture = QtConcurrent::run(bWorker);
 
