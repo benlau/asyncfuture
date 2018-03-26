@@ -1386,6 +1386,7 @@ auto observe(QObject* object, Member pointToMemberFunction)
     proxy->bind(object, pointToMemberFunction);
     proxy->callback = [=](Private::Value<RetType> value) {
         defer->complete(value); // proxy is destroyed automatically
+        defer->decRefCount();
     };
 
     Observable< typename Private::signal_traits<Member>::result_type> observer(defer->future());
@@ -1404,6 +1405,7 @@ inline Observable<QVariant> observe(QObject *object,QString signal)  {
     proxy->bind(object, signal);
     proxy->callback = [=](QVariant value) {
         defer->complete(value); // proxy is destroyed automatically
+        defer->decRefCount();
     };
 
     Observable<QVariant> observer(defer->future());
