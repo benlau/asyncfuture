@@ -1385,6 +1385,32 @@ void AsyncFutureTests::test_Deferred_cancel_future()
     }
 }
 
+void AsyncFutureTests::test_Deferred_future_cancel()
+{
+    {
+        int canceledCount = 0;
+
+        auto defer = deferred<void>();
+
+        defer.onCanceled([&]() {
+            canceledCount++;
+        });
+
+        defer.future().cancel();
+        Automator::wait(50);
+
+        auto future = defer.future();
+
+        QTRY_COMPARE(canceledCount, 1);
+        Automator::wait(50);
+
+        QCOMPARE(future.isCanceled(), true);
+        QCOMPARE(future.isFinished(), false);
+    }
+
+
+}
+
 void AsyncFutureTests::test_Deferred_across_thread()
 {
     auto defer = deferred<int>();
