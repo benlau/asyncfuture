@@ -347,24 +347,57 @@ void Example::example_fileactor()
 
 template <typename T, typename Sequence, typename Functor>
 QFuture<T> mapped(Sequence input, Functor func){
+    class Context {
+    public:
+        QMutex mutex;
+        Sequence input;
+        QVector<T> output;
+        int finishedCount;
+        int index;
+        std::function<void(int)> worker;
+    };
+    QThreadPool *pool = QThreadPool::globalInstance();
+
     auto defer = AsyncFuture::deferred<T>();
 
-    QList<QFuture<T>> futures;
-    auto combinator = AsyncFuture::combine();
+    /// Allow to be canceled by user
+    defer.onCanceled(defer);
 
-    for (int i = 0 ; i < input.size() ; i++) {
-        auto future = QtConcurrent::run(func, input[i]);
-        combinator << future;
-        futures << future;
-    }
+    int insertCount = qMin(pool->maxThreadCount(),input.size());
 
-    AsyncFuture::observe(combinator.future()).subscribe([=]() mutable {
-        QList<T> res;
-        for (int i = 0 ; i < futures.size(); i++) {
-            res << futures[i].result();
+    QSharedPointer<Context> context(new Context());
+    context->input = input;
+    context->index = insertCount;
+    context->finishedCount = 0;
+    context->output = QVector<T>(input.size());
+
+    context->worker = [defer, pool, context, func](int pos) mutable {
+        T res = func(context->input[pos]);
+        //@TODO - update prgress value
+
+        context->mutex.lock();
+        context->output[pos] = res;
+
+        if (!defer.future().isCanceled()) {
+            int index = context->index;
+            if (index < context->input.size()) {
+                QtConcurrent::run(pool, context->worker, index++);
+                context->index = index;
+            }
+
+            context->finishedCount++;
+            if (context->finishedCount >= context->input.size()) {
+                defer.complete(context->output.toList());
+                context->worker = nullptr;
+            }
         }
-        defer.complete(res);
-    });
+        context->mutex.unlock();
+
+    };
+
+    for (int i = 0 ; i < insertCount ; i++) {
+        QtConcurrent::run(pool, context->worker, i);
+    }
 
     return defer.future();
 }
@@ -378,7 +411,7 @@ void Example::example_simulate_qtconcurrent_mapped()
     };
 
     QList<int> input, expected;
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 20; i++) {
         input << i;
         expected << i * i;
     }
@@ -434,11 +467,7 @@ void Example::example_qtconcurrent_mapped_cancel()
 
     auto f2 = observe(f1).subscribe([&](){
         auto future = QtConcurrent::mapped(input, semaphoreWorker);
-        cancelToken.subscribe([](){}, [=]() {
-            auto f = future;
-            f.cancel();
-        });
-
+        cancelToken.onCanceled(future);
         return future;
     }).future();
 
@@ -489,6 +518,7 @@ auto cancellationWrapper(Functor functor, Token token) -> std::function<QFuture<
 
 void Example::example_CancellationToken()
 {
+    //@TODO - It is over complicated
     Deferred<void> cancellation = deferred<void>();
 
     QFuture<void> cancellationToken = cancellation.future();
