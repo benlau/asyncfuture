@@ -1076,6 +1076,23 @@ void AsyncFutureTests::test_Observable_onCanceled_future()
     QCOMPARE(d2.future().isFinished(), false);
 }
 
+void AsyncFutureTests::test_Obsverable_onCompleted()
+{
+    bool called = false;
+    auto defer = deferred<void>();
+
+    defer.onCompleted([&]() {
+        called = true;
+    });
+
+    defer.complete();
+    QCOMPARE(called, false);
+    await(defer.future());
+    Automator::wait(10);
+
+    QCOMPARE(called, true);
+}
+
 
 void AsyncFutureTests::test_Deferred()
 {

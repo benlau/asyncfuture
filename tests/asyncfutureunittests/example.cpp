@@ -372,6 +372,9 @@ QFuture<T> mapped(Sequence input, Functor func){
     context->output = QVector<T>(input.size());
 
     context->worker = [defer, pool, context, func](int pos) mutable {
+        if (defer.future().isCanceled()) {
+            return;
+        }
         T res = func(context->input[pos]);
         //@TODO - update prgress value
 

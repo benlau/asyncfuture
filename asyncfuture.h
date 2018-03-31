@@ -1189,6 +1189,11 @@ public:
         watcher->setFuture(m_future);
     }
 
+
+    void onCompleted(std::function<void()> func) {
+        subscribe(func, []() {});
+    }
+
     void onCanceled(std::function<void()> func) {
         subscribe([]() {}, func);
     }
