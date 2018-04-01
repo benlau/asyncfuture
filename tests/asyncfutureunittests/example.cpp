@@ -351,6 +351,7 @@ void Example::example_fileactor()
 void Example::example_mapped_with_lambda()
 {
 
+    qDebug() << "Case 1 - Normal Usage";
     { // Case 1 : Normal usage
         auto worker = [=](int value) {
             Automator::wait(10);
@@ -373,6 +374,8 @@ void Example::example_mapped_with_lambda()
 
         QVERIFY(result == expected);
     }
+
+    qDebug() << "Case 2 - Cancalation";
 
     {
         QSemaphore semaphore(1);

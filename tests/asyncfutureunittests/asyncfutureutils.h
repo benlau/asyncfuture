@@ -80,6 +80,9 @@ namespace AsyncFutureUtils {
                     defer.complete(context->output.toList());
                     context->worker = nullptr;
                 }
+            } else {
+                // Make sure it could release the ref to context by worker in cancellation
+                context->worker = nullptr;
             }
             context->mutex.unlock();
         };
