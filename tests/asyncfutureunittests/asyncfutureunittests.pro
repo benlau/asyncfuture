@@ -14,11 +14,11 @@ TEMPLATE = app
 
 SOURCES +=     main.cpp \
     example.cpp \
-    asyncfuturetests.cpp \
     bugtests.cpp \
     samplecode.cpp \
     cookbook.cpp \
-    trackingdata.cpp
+    trackingdata.cpp \
+    spec.cpp
 
 DEFINES += SRCDIR=\\\"$$PWD/\\\" QUICK_TEST_SOURCE_DIR=\\\"$$PWD/qmltests\\\"
 
@@ -32,13 +32,13 @@ DISTFILES +=     qpm.json  \
 
 HEADERS += \
     example.h \
-    asyncfuturetests.h \
     testfunctions.h \
     bugtests.h \
     asyncfutureutils.h \
     samplecode.h \
     cookbook.h \
-    trackingdata.h
+    trackingdata.h \
+    spec.h
 
 !win32 {
     QMAKE_CXXFLAGS += -Werror

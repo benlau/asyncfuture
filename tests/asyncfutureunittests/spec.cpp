@@ -7,7 +7,7 @@
 #include "trackingdata.h"
 #include "testfunctions.h"
 #include "asyncfuture.h"
-#include "asyncfuturetests.h"
+#include "spec.h"
 #include "asyncfutureutils.h"
 
 using namespace AsyncFuture;
@@ -28,7 +28,7 @@ static int mapFunc(int value) {
     return value * value;
 }
 
-AsyncFutureTests::AsyncFutureTests(QObject *parent) : QObject(parent)
+Spec::Spec(QObject *parent) : QObject(parent)
 {
     auto ref = [=]() {
         QTest::qExec(this, 0, 0); // Autotest detect available test cases of a QObject by looking for "QTest::qExec" in source code
@@ -36,7 +36,7 @@ AsyncFutureTests::AsyncFutureTests(QObject *parent) : QObject(parent)
     Q_UNUSED(ref);
 }
 
-void AsyncFutureTests::initTestCase()
+void Spec::initTestCase()
 {
     {
         QCOMPARE(TrackingData::aliveCount(), 0);
@@ -54,7 +54,7 @@ void AsyncFutureTests::initTestCase()
 
 }
 
-void AsyncFutureTests::cleanup()
+void Spec::cleanup()
 {
     QCOMPARE(TrackingData::aliveCount(), 0);
 }
@@ -65,7 +65,7 @@ static int square(int value) {
     return value * value;
 }
 
-void AsyncFutureTests::test_QFuture_cancel()
+void Spec::test_QFuture_cancel()
 {
     QList<int> input;
     for (int i = 0 ; i < 100;i++) {
@@ -89,7 +89,7 @@ void AsyncFutureTests::test_QFuture_cancel()
     QCOMPARE(future.isCanceled(), true);
 }
 
-void AsyncFutureTests::test_QFuture_isResultReadyAt()
+void Spec::test_QFuture_isResultReadyAt()
 {
     auto defer = deferred<int>();
     auto future = defer.future();
@@ -104,7 +104,7 @@ void AsyncFutureTests::test_QFuture_isResultReadyAt()
 
 }
 
-void AsyncFutureTests::test_QFutureWatcher_in_thread()
+void Spec::test_QFutureWatcher_in_thread()
 {
     // It prove to use QFutureWatcher in a thread do not works if QEventLoop is not used.
 
@@ -178,7 +178,7 @@ void AsyncFutureTests::test_QFutureWatcher_in_thread()
     }
 }
 
-void AsyncFutureTests::test_QtConcurrent_exception()
+void Spec::test_QtConcurrent_exception()
 {
     auto future = QtConcurrent::run([]() {
         Automator::wait(100);
@@ -196,9 +196,8 @@ void AsyncFutureTests::test_QtConcurrent_exception()
     QCOMPARE(future.isResultReadyAt(0) , false);
 }
 
-
 #if QT_VERSION > QT_VERSION_CHECK(5, 7, 1)
-void AsyncFutureTests::test_QtConcurrent_map()
+void Spec::test_QtConcurrent_map()
 {
     QFuture<void> future;
     QFutureWatcher<void> watcher;
@@ -251,7 +250,7 @@ void AsyncFutureTests::test_QtConcurrent_map()
 
 #define TYPEOF(x) std::decay<decltype(x)>::type
 
-void AsyncFutureTests::test_function_traits()
+void Spec::test_function_traits()
 {
     int dummy = 0;
 
@@ -313,7 +312,7 @@ void AsyncFutureTests::test_function_traits()
 
 }
 
-void AsyncFutureTests::test_private_DeferredFuture()
+void Spec::test_private_DeferredFuture()
 {
     auto defer = Private::DeferredFuture<void>::create();
 
@@ -335,7 +334,7 @@ void AsyncFutureTests::test_private_DeferredFuture()
 }
 
 
-void AsyncFutureTests::test_private_run()
+void Spec::test_private_run()
 {
     QFuture<bool> bFuture = finishedFuture<bool>(true);
     QFuture<void> vFuture;
@@ -380,7 +379,7 @@ void AsyncFutureTests::test_private_run()
     // value = ObservableFuture::Private::run(iCallbackBool, vFuture);
 }
 
-void AsyncFutureTests::test_observe_future_future()
+void Spec::test_observe_future_future()
 {
     auto worker = [=]() {
         QList<int> list;
@@ -400,7 +399,7 @@ void AsyncFutureTests::test_observe_future_future()
     QCOMPARE(result.size(), 4);
 }
 
-void AsyncFutureTests::test_Observable_context()
+void Spec::test_Observable_context()
 {
 
     QFuture<bool> bFuture;
@@ -502,7 +501,7 @@ void AsyncFutureTests::test_Observable_context()
     }
 }
 
-void AsyncFutureTests::test_Observable_context_destroyed()
+void Spec::test_Observable_context_destroyed()
 {
     QObject* context = new QObject();
 
@@ -533,7 +532,7 @@ void AsyncFutureTests::test_Observable_context_destroyed()
     }, 1000));
 }
 
-void AsyncFutureTests::test_Observable_context_in_thread()
+void Spec::test_Observable_context_in_thread()
 {
     auto worker = [&]() -> void {
         QObject context;
@@ -568,7 +567,7 @@ void AsyncFutureTests::test_Observable_context_in_thread()
     future.waitForFinished();
 }
 
-void AsyncFutureTests::test_Observable_context_in_different_thread()
+void Spec::test_Observable_context_in_different_thread()
 {
     QObject context;
 
@@ -604,7 +603,7 @@ void AsyncFutureTests::test_Observable_context_in_different_thread()
     waitUntil(future);
 }
 
-void AsyncFutureTests::test_Observable_context_return_future()
+void Spec::test_Observable_context_return_future()
 {
     auto bWorker = [=]() -> bool {
         Automator::wait(50);
@@ -630,7 +629,7 @@ void AsyncFutureTests::test_Observable_context_return_future()
 
 }
 
-void AsyncFutureTests::test_Observable_signal()
+void Spec::test_Observable_signal()
 {
     auto proxy = new SignalProxy(this);
 
@@ -654,7 +653,7 @@ void AsyncFutureTests::test_Observable_signal()
     delete proxy;
 }
 
-void AsyncFutureTests::test_Observable_signal_with_argument()
+void Spec::test_Observable_signal_with_argument()
 {
     auto *proxy = new SignalProxy(this);
 
@@ -681,7 +680,7 @@ void AsyncFutureTests::test_Observable_signal_with_argument()
     delete proxy;
 }
 
-void AsyncFutureTests::test_Observable_signal_by_signature()
+void Spec::test_Observable_signal_by_signature()
 {
 
     {
@@ -749,7 +748,7 @@ void AsyncFutureTests::test_Observable_signal_by_signature()
 
 }
 
-void AsyncFutureTests::test_Observable_signal_destroyed()
+void Spec::test_Observable_signal_destroyed()
 {
     auto proxy = new SignalProxy(this);
 
@@ -765,7 +764,7 @@ void AsyncFutureTests::test_Observable_signal_destroyed()
     QCOMPARE(vFuture.isCanceled(), true);
 }
 
-void AsyncFutureTests::test_Observable_subscribe()
+void Spec::test_Observable_subscribe()
 {
     {
         // complete
@@ -804,7 +803,7 @@ void AsyncFutureTests::test_Observable_subscribe()
     }
 }
 
-void AsyncFutureTests::test_Observable_subscribe_in_thread()
+void Spec::test_Observable_subscribe_in_thread()
 {
     QThreadPool pool;
     pool.setMaxThreadCount(4);
@@ -837,7 +836,7 @@ void AsyncFutureTests::test_Observable_subscribe_in_thread()
     QVERIFY(waitUntil(future , 1000));
 }
 
-void AsyncFutureTests::test_Observable_subscribe_return_future()
+void Spec::test_Observable_subscribe_return_future()
 {
     auto bWorker = [=]() -> bool {
         Automator::wait(50);
@@ -867,7 +866,7 @@ void AsyncFutureTests::test_Observable_subscribe_return_future()
     QCOMPARE(observable2.future().result(), 10);
 }
 
-void AsyncFutureTests::test_Observable_subscribe_return_canceledFuture()
+void Spec::test_Observable_subscribe_return_canceledFuture()
 {
     auto start = Deferred<void>();
     auto f1 = start.future();
@@ -896,7 +895,7 @@ void AsyncFutureTests::test_Observable_subscribe_return_canceledFuture()
 
 }
 
-void AsyncFutureTests::test_Observable_subscribe_return_mappedFuture()
+void Spec::test_Observable_subscribe_return_mappedFuture()
 {
 
     auto future = observe(QtConcurrent::run([](){})).subscribe([=]() {
@@ -915,7 +914,7 @@ void AsyncFutureTests::test_Observable_subscribe_return_mappedFuture()
     QCOMPARE(future.results(), expected);
 }
 
-void AsyncFutureTests::test_Observable_subscribe_exception()
+void Spec::test_Observable_subscribe_exception()
 {
 
     auto future = observe(QtConcurrent::run([](){})).subscribe([=]() {
@@ -936,7 +935,7 @@ void AsyncFutureTests::test_Observable_subscribe_exception()
 
 }
 
-void AsyncFutureTests::test_Observable_onProgress()
+void Spec::test_Observable_onProgress()
 {
     class CustomDeferred: public AsyncFuture::Deferred<int> {
     public:
@@ -1020,7 +1019,7 @@ void AsyncFutureTests::test_Observable_onProgress()
     }
 }
 
-void AsyncFutureTests::test_Observable_onCanceled()
+void Spec::test_Observable_onCanceled()
 {
     bool canceled = false;
     auto defer = deferred<void>();
@@ -1037,7 +1036,7 @@ void AsyncFutureTests::test_Observable_onCanceled()
     QCOMPARE(canceled, true);
 }
 
-void AsyncFutureTests::test_Observable_onCanceled_deferred()
+void Spec::test_Observable_onCanceled_deferred()
 {
     auto d1 = deferred<void>();
     auto d2 = deferred<void>();
@@ -1056,7 +1055,7 @@ void AsyncFutureTests::test_Observable_onCanceled_deferred()
     QCOMPARE(d2.future().isCanceled(), true);
 }
 
-void AsyncFutureTests::test_Observable_onCanceled_future()
+void Spec::test_Observable_onCanceled_future()
 {
     auto d1 = deferred<int>();
     auto d2 = deferred<int>();
@@ -1076,7 +1075,7 @@ void AsyncFutureTests::test_Observable_onCanceled_future()
     QCOMPARE(d2.future().isFinished(), false);
 }
 
-void AsyncFutureTests::test_Obsverable_onCompleted()
+void Spec::test_Obsverable_onCompleted()
 {
     bool called = false;
     auto defer = deferred<void>();
@@ -1094,7 +1093,7 @@ void AsyncFutureTests::test_Obsverable_onCompleted()
 }
 
 
-void AsyncFutureTests::test_Deferred()
+void Spec::test_Deferred()
 {
     {
         // defer<bool>::complete
@@ -1195,7 +1194,7 @@ void AsyncFutureTests::test_Deferred()
 
 }
 
-void AsyncFutureTests::test_Deferred_complete_future()
+void Spec::test_Deferred_complete_future()
 {
     auto timeout = []() {
         Automator::wait(50);
@@ -1278,7 +1277,7 @@ void AsyncFutureTests::test_Deferred_complete_future()
     }
 }
 
-void AsyncFutureTests::test_Deferred_complete_future_future()
+void Spec::test_Deferred_complete_future_future()
 {
     /*
      Remarks:
@@ -1319,7 +1318,7 @@ void AsyncFutureTests::test_Deferred_complete_future_future()
 
 }
 
-void AsyncFutureTests::test_Deferred_complete_list()
+void Spec::test_Deferred_complete_list()
 {
     auto defer = deferred<int>();
 
@@ -1335,7 +1334,7 @@ void AsyncFutureTests::test_Deferred_complete_list()
     QVERIFY(future.results() == expected);
 }
 
-void AsyncFutureTests::test_Deferred_cancel_future()
+void Spec::test_Deferred_cancel_future()
 {
 
     auto timeout = []() {
@@ -1402,7 +1401,7 @@ void AsyncFutureTests::test_Deferred_cancel_future()
     }
 }
 
-void AsyncFutureTests::test_Deferred_future_cancel()
+void Spec::test_Deferred_future_cancel()
 {
     {
         int canceledCount = 0;
@@ -1428,7 +1427,7 @@ void AsyncFutureTests::test_Deferred_future_cancel()
 
 }
 
-void AsyncFutureTests::test_Deferred_across_thread()
+void Spec::test_Deferred_across_thread()
 {
     auto defer = deferred<int>();
 
@@ -1443,7 +1442,7 @@ void AsyncFutureTests::test_Deferred_across_thread()
     QCOMPARE(defer.future().result(), 99);
 }
 
-void AsyncFutureTests::test_Deferred_inherit()
+void Spec::test_Deferred_inherit()
 {
     class CustomDeferredVoid : public Deferred<void> {
     public:
@@ -1503,7 +1502,7 @@ void AsyncFutureTests::test_Deferred_inherit()
     }
 }
 
-void AsyncFutureTests::test_Deferred_track()
+void Spec::test_Deferred_track()
 {
     class CustomDeferred : public Deferred<int> {
     public:
@@ -1535,7 +1534,7 @@ void AsyncFutureTests::test_Deferred_track()
 
 }
 
-void AsyncFutureTests::test_Deferred_track_started()
+void Spec::test_Deferred_track_started()
 {
     QFuture<void> future;
     QFutureWatcher<void> watcher;
@@ -1561,7 +1560,7 @@ void AsyncFutureTests::test_Deferred_track_started()
     QCOMPARE(future.isFinished(), true);
 }
 
-void AsyncFutureTests::test_Deferred_setProgress()
+void Spec::test_Deferred_setProgress()
 {
     class CustomDeferred : public Deferred<void> {
     public:
@@ -1591,7 +1590,7 @@ void AsyncFutureTests::test_Deferred_setProgress()
     QCOMPARE(defer.future().progressValue(), 3);
 }
 
-void AsyncFutureTests::test_Combinator()
+void Spec::test_Combinator()
 {
     {
         // case: all completed
@@ -1744,7 +1743,7 @@ void AsyncFutureTests::test_Combinator()
 
 }
 
-void AsyncFutureTests::test_Combinator_add_to_already_finished()
+void Spec::test_Combinator_add_to_already_finished()
 {
     {
         // case: combine(true), cancel
@@ -1775,7 +1774,7 @@ void AsyncFutureTests::test_Combinator_add_to_already_finished()
     }
 }
 
-void AsyncFutureTests::test_Combinator_progressValue()
+void Spec::test_Combinator_progressValue()
 {
 
     {
@@ -1804,7 +1803,7 @@ void AsyncFutureTests::test_Combinator_progressValue()
 
 }
 
-void AsyncFutureTests::test_alive()
+void Spec::test_alive()
 {
 
     {

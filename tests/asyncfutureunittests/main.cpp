@@ -3,7 +3,7 @@
 #include <TestRunner>
 #include <QtQuickTest>
 #include "example.h"
-#include "asyncfuturetests.h"
+#include "spec.h"
 #include "bugtests.h"
 #include "samplecode.h"
 #include "cookbook.h"
@@ -45,7 +45,7 @@ int main(int argc, char *argv[])
     QCoreApplication app(argc, argv);
 
     TestRunner runner;
-    runner.add<AsyncFutureTests>();
+    runner.add<Spec>();
     runner.add<BugTests>();
     runner.add<Example>();
     runner.add<SampleCode>();

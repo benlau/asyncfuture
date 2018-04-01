@@ -1,13 +1,14 @@
 #ifndef ASYNCFUTUREUTILS_H
 #define ASYNCFUTUREUTILS_H
 
-#include <asyncfuture.h>
+#include <QThreadPool>
 #include <QTimer>
+#include <QtConcurrent>
+#include <asyncfuture.h>
 
 // Not part of the AsyncFuture, but user may c&p the code to their program
 
 namespace AsyncFutureUtils {
-
 
     template <typename Functor>
     inline void runOnMainThread(Functor func) {
@@ -16,6 +17,7 @@ namespace AsyncFutureUtils {
     }
 
     /// Returns a QFuture<void> which will be completed after msec specified by value.
+    /// This version works on non-main trehad
     inline
     QFuture<void> timeout(int value) {
        auto defer = AsyncFuture::deferred<void>();
@@ -30,6 +32,64 @@ namespace AsyncFutureUtils {
        return defer.future();
     }
 
+    template <typename T, typename Sequence, typename Functor>
+    QFuture<T> mapped(Sequence input, Functor func){
+        class Context {
+        public:
+            QMutex mutex;
+            Sequence input;
+            QVector<T> output;
+            int finishedCount;
+            int index;
+            std::function<void(int)> worker;
+        };
+        QThreadPool *pool = QThreadPool::globalInstance();
+
+        auto defer = AsyncFuture::deferred<T>();
+
+        /// Allow to be canceled by user
+        defer.onCanceled(defer);
+
+        int insertCount = qMin(pool->maxThreadCount(),input.size());
+
+        QSharedPointer<Context> context(new Context());
+        context->input = input;
+        context->index = insertCount;
+        context->finishedCount = 0;
+        context->output = QVector<T>(input.size());
+
+        context->worker = [defer, pool, context, func](int pos) mutable {
+            if (defer.future().isCanceled()) {
+                return;
+            }
+            T res = func(context->input[pos]);
+            //@TODO - update prgress value
+
+            context->mutex.lock();
+            context->output[pos] = res;
+
+            if (!defer.future().isCanceled()) {
+                int index = context->index;
+                if (index < context->input.size()) {
+                    QtConcurrent::run(pool, context->worker, index++);
+                    context->index = index;
+                }
+
+                context->finishedCount++;
+                if (context->finishedCount >= context->input.size()) {
+                    defer.complete(context->output.toList());
+                    context->worker = nullptr;
+                }
+            }
+            context->mutex.unlock();
+        };
+
+        for (int i = 0 ; i < insertCount ; i++) {
+            QtConcurrent::run(pool, context->worker, i);
+        }
+
+        return defer.future();
+    }
 }
 
 #endif // ASYNCFUTUREUTILS_H

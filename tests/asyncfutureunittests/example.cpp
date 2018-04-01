@@ -345,163 +345,80 @@ void Example::example_fileactor()
 
 }
 
-template <typename T, typename Sequence, typename Functor>
-QFuture<T> mapped(Sequence input, Functor func){
-    class Context {
-    public:
+/* QtConcurrent::mapped doesn't support lambda function. This example show how AsyncFuture could make
+ * a mapped that support lambda
+ */
+void Example::example_mapped_with_lambda()
+{
+
+    { // Case 1 : Normal usage
+        auto worker = [=](int value) {
+            Automator::wait(10);
+            return value * value;
+        };
+
+        QList<int> input, expected;
+        for (int i = 0; i < 20; i++) {
+            input << i;
+            expected << i * i;
+        }
+
+        QFuture<int> future = AsyncFutureUtils::mapped<int>(input, worker);
+
+        Test::waitUntil(future);
+
+        QCOMPARE(future.isFinished(), true);
+
+        QList<int> result = future.results();
+
+        QVERIFY(result == expected);
+    }
+
+    {
+        QSemaphore semaphore(1);
+        semaphore.acquire(1);
         QMutex mutex;
-        Sequence input;
-        QVector<T> output;
-        int finishedCount;
-        int index;
-        std::function<void(int)> worker;
-    };
-    QThreadPool *pool = QThreadPool::globalInstance();
 
-    auto defer = AsyncFuture::deferred<T>();
+        // Case 2: Cancellation
+        int threadCount = QThread::idealThreadCount();
+        int workerCount = 0;
+        int finishedCount = 0;
 
-    /// Allow to be canceled by user
-    defer.onCanceled(defer);
+        auto worker = [&](int value) {
+            mutex.lock();
+            workerCount++;
+            mutex.unlock();
 
-    int insertCount = qMin(pool->maxThreadCount(),input.size());
+            semaphore.acquire();
+            Automator::wait(10);
+            semaphore.release();
 
-    QSharedPointer<Context> context(new Context());
-    context->input = input;
-    context->index = insertCount;
-    context->finishedCount = 0;
-    context->output = QVector<T>(input.size());
+            mutex.lock();
+            finishedCount++;
+            mutex.unlock();
 
-    context->worker = [defer, pool, context, func](int pos) mutable {
-        if (defer.future().isCanceled()) {
-            return;
+            return value * value;
+        };
+
+        QList<int> input;
+        for (int i = 0; i < threadCount * 2; i++) {
+            input << i;
         }
-        T res = func(context->input[pos]);
-        //@TODO - update prgress value
 
-        context->mutex.lock();
-        context->output[pos] = res;
+        QFuture<int> future = AsyncFutureUtils::mapped<int>(input, worker);
 
-        if (!defer.future().isCanceled()) {
-            int index = context->index;
-            if (index < context->input.size()) {
-                QtConcurrent::run(pool, context->worker, index++);
-                context->index = index;
-            }
+        QTRY_COMPARE(workerCount, threadCount);
+        // no one could acquire the lock.
+        QCOMPARE(finishedCount, 0);
 
-            context->finishedCount++;
-            if (context->finishedCount >= context->input.size()) {
-                defer.complete(context->output.toList());
-                context->worker = nullptr;
-            }
-        }
-        context->mutex.unlock();
+        future.cancel();
+        semaphore.release();
 
-    };
+        Automator::wait(500);
 
-    for (int i = 0 ; i < insertCount ; i++) {
-        QtConcurrent::run(pool, context->worker, i);
+        QTRY_COMPARE(finishedCount, threadCount);
+        QCOMPARE(workerCount, threadCount);
     }
-
-    return defer.future();
-}
-
-/// To simulate a QtConcurrent::mapped
-void Example::example_simulate_qtconcurrent_mapped()
-{
-    auto worker = [=](int value) {
-        Automator::wait(10);
-        return value * value;
-    };
-
-    QList<int> input, expected;
-    for (int i = 0; i < 20; i++) {
-        input << i;
-        expected << i * i;
-    }
-
-    QFuture<int> future = mapped<int>(input, worker);
-
-    Test::waitUntil(future);
-
-    QCOMPARE(future.isFinished(), true);
-
-    QList<int> result = future.results();
-
-    QVERIFY(result == expected);
-}
-
-static QMutex semaphoreWorkerMutex;
-static int semaphoreWorkerRunningCount = 0;
-static int semaphoreWorkerFinishedCount = 0;
-static QSemaphore internalSemaphore(1);
-
-static int semaphoreWorker(int value) {
-    semaphoreWorkerMutex.lock();
-    semaphoreWorkerRunningCount++;
-    semaphoreWorkerMutex.unlock();
-    internalSemaphore.acquire();
-    semaphoreWorkerMutex.lock();
-    semaphoreWorkerFinishedCount++;
-    semaphoreWorkerMutex.unlock();
-    internalSemaphore.release();
-    return value;
-}
-
-void Example::example_qtconcurrent_mapped_cancel()
-{
-    //@TODO - It need an improved cancellation token mechanism
-
-    semaphoreWorkerRunningCount = 0;
-    semaphoreWorkerFinishedCount = 0;
-    internalSemaphore.acquire(1);
-
-    int count = QThreadPool::globalInstance()->maxThreadCount() * 2;
-
-    // The input size should be double than the no. of thread available in QThreadPool
-    QList<int> input;
-
-    for (int i = 0 ;i < count;i++) {
-        input << i;
-    }
-
-    auto cancelToken = deferred<void>();
-
-    auto f1 = timeout(100);
-
-    auto f2 = observe(f1).subscribe([&](){
-        auto future = QtConcurrent::mapped(input, semaphoreWorker);
-        cancelToken.onCanceled(future);
-        return future;
-    }).future();
-
-    observe(f2).subscribe([](){}, [=]() {
-        auto d = cancelToken;
-        d.cancel();
-    });
-
-    await(f1);
-
-    // Wait until all the thread are blocked;
-    // QtConcurrent::mapped coult not take QThreadPool as input argument.
-    Automator::wait(1000);
-
-    QVERIFY(semaphoreWorkerRunningCount > 0);
-    QCOMPARE(semaphoreWorkerFinishedCount, 0);
-    int runningCount = semaphoreWorkerRunningCount;
-
-    // Cancel f2. No more worker should be executed
-    f2.cancel();
-
-    Automator::wait(100);
-
-    internalSemaphore.release();
-
-    QTRY_COMPARE(semaphoreWorkerFinishedCount, runningCount);
-    Automator::wait(100);
-
-    QCOMPARE(semaphoreWorkerRunningCount, runningCount);
-    QCOMPARE(semaphoreWorkerFinishedCount, runningCount);
-
 }
 
 template <typename Functor, typename Token>

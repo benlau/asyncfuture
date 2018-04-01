@@ -13,11 +13,11 @@ signals:
     void proxy1(int);
 };
 
-class AsyncFutureTests : public QObject
+class Spec : public QObject
 {
     Q_OBJECT
 public:
-    explicit AsyncFutureTests(QObject *parent = 0);
+    explicit Spec(QObject *parent = 0);
 
 signals:
 
