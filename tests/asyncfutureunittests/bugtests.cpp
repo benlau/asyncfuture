@@ -2,12 +2,12 @@
 #include <Automator>
 #include <QtConcurrent>
 #include <asyncfuture.h>
-#include "asyncfutureutils.h"
+#include "tools.h"
 #include "testfunctions.h"
 #include "bugtests.h"
 
 using namespace AsyncFuture;
-using namespace AsyncFutureUtils;
+using namespace Tools;
 using namespace Test;
 
 BugTests::BugTests(QObject *parent) : QObject(parent)

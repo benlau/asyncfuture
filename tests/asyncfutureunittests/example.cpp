@@ -6,10 +6,10 @@
 #include <QTimer>
 #include "example.h"
 #include "testfunctions.h"
-#include "asyncfutureutils.h"
+#include "tools.h"
 
 using namespace AsyncFuture;
-using namespace AsyncFutureUtils;
+using namespace Tools;
 using namespace Test;
 
 static QString delayedFakeRead(const QString& fileName) {
@@ -364,7 +364,7 @@ void Example::example_mapped_with_lambda()
             expected << i * i;
         }
 
-        QFuture<int> future = AsyncFutureUtils::mapped<int>(input, worker);
+        QFuture<int> future = Tools::mapped<int>(input, worker);
 
         Test::waitUntil(future);
 
@@ -408,7 +408,7 @@ void Example::example_mapped_with_lambda()
             input << i;
         }
 
-        QFuture<int> future = AsyncFutureUtils::mapped<int>(input, worker);
+        QFuture<int> future = Tools::mapped<int>(input, worker);
 
         QTRY_COMPARE(workerCount, threadCount);
         // no one could acquire the lock.
@@ -490,7 +490,7 @@ void Example::example_Combinator_timeout()
     auto defer = deferred<void>();
 
     defer.complete(combinator.future());
-    defer.cancel(AsyncFutureUtils::timeout(10));
+    defer.cancel(Tools::timeout(10));
 
     auto returningFuture = defer.future();
 

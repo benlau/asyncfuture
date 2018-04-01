@@ -1,5 +1,4 @@
-#ifndef ASYNCFUTUREUTILS_H
-#define ASYNCFUTUREUTILS_H
+#pragma once
 
 #include <QThreadPool>
 #include <QTimer>
@@ -8,7 +7,7 @@
 
 // Not part of the AsyncFuture, but user may c&p the code to their program
 
-namespace AsyncFutureUtils {
+namespace Tools {
 
     template <typename Functor>
     inline void runOnMainThread(Functor func) {
@@ -95,4 +94,3 @@ namespace AsyncFutureUtils {
     }
 }
 
-#endif // ASYNCFUTUREUTILS_H

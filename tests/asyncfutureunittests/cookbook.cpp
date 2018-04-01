@@ -3,11 +3,11 @@
 #include <QTest>
 #include <Automator>
 #include <asyncfuture.h>
-#include "asyncfutureutils.h"
+#include "tools.h"
 #include "cookbook.h"
 #include "testfunctions.h"
 
-using namespace AsyncFutureUtils;
+using namespace Tools;
 
 Cookbook::Cookbook(QObject *parent) : QObject(parent)
 {

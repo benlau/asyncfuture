@@ -8,10 +8,10 @@
 #include "testfunctions.h"
 #include "asyncfuture.h"
 #include "spec.h"
-#include "asyncfutureutils.h"
+#include "tools.h"
 
 using namespace AsyncFuture;
-using namespace AsyncFutureUtils;
+using namespace Tools;
 using namespace Test;
 
 template <typename T>
@@ -1075,7 +1075,7 @@ void Spec::test_Observable_onCanceled_future()
     QCOMPARE(d2.future().isFinished(), false);
 }
 
-void Spec::test_Obsverable_onCompleted()
+void Spec::test_Observable_onCompleted()
 {
     bool called = false;
     auto defer = deferred<void>();
@@ -1092,6 +1092,23 @@ void Spec::test_Obsverable_onCompleted()
     QCOMPARE(called, true);
 }
 
+void Spec::test_Observable_setProgressValue()
+{
+
+    auto defer = deferred<int>();
+    auto future = defer.future();
+
+    QCOMPARE(future.progressValue(), 0);
+    QCOMPARE(future.progressMinimum(), 0);
+    QCOMPARE(future.progressMaximum(), 0);
+
+    defer.setProgressValue(10);
+    defer.setProgressRange(5, 30);
+
+    QCOMPARE(future.progressValue(), 10);
+    QCOMPARE(future.progressMinimum(), 5);
+    QCOMPARE(future.progressMaximum(), 30);
+}
 
 void Spec::test_Deferred()
 {

@@ -1279,6 +1279,14 @@ public:
         deferredFuture->track(future);
     }
 
+    void setProgressValue(int value) {
+        deferredFuture->setProgressValue(value);
+    }
+
+    void setProgressRange(int minimum, int maximum) {
+        deferredFuture->setProgressRange(minimum, maximum);
+    }
+
 protected:
     QSharedPointer<Private::DeferredFuture<T> > deferredFuture;
 };

@@ -1,10 +1,10 @@
 #include <QTest>
 #include "samplecode.h"
-#include "asyncfutureutils.h"
+#include "tools.h"
 #include "testfunctions.h"
 
 using namespace AsyncFuture;
-using namespace AsyncFutureUtils;
+using namespace Tools;
 using namespace Test;
 
 SampleCode::SampleCode(QObject *parent) : QObject(parent)

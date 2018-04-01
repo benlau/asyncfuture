@@ -34,11 +34,11 @@ HEADERS += \
     example.h \
     testfunctions.h \
     bugtests.h \
-    asyncfutureutils.h \
     samplecode.h \
     cookbook.h \
     trackingdata.h \
-    spec.h
+    spec.h \
+    tools.h
 
 !win32 {
     QMAKE_CXXFLAGS += -Werror
