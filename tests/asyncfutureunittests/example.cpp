@@ -366,6 +366,9 @@ void Example::example_mapped_with_lambda()
 
         QFuture<int> future = Tools::mapped<int>(input, worker);
 
+        QCOMPARE(future.progressValue(), 0);
+        QCOMPARE(future.progressMaximum(), 20);
+
         Test::waitUntil(future);
 
         QCOMPARE(future.isFinished(), true);
@@ -373,6 +376,9 @@ void Example::example_mapped_with_lambda()
         QList<int> result = future.results();
 
         QVERIFY(result == expected);
+
+        QCOMPARE(future.progressValue(), 20);
+        QCOMPARE(future.progressMaximum(), 20);
     }
 
     qDebug() << "Case 2 - Cancalation";
@@ -410,6 +416,9 @@ void Example::example_mapped_with_lambda()
 
         QFuture<int> future = Tools::mapped<int>(input, worker);
 
+        QCOMPARE(future.progressValue(), 0);
+        QCOMPARE(future.progressMaximum(), threadCount * 2);
+
         QTRY_COMPARE(workerCount, threadCount);
         // no one could acquire the lock.
         QCOMPARE(finishedCount, 0);
@@ -421,6 +430,10 @@ void Example::example_mapped_with_lambda()
 
         QTRY_COMPARE(finishedCount, threadCount);
         QCOMPARE(workerCount, threadCount);
+
+        /// Progress value can't be changed after canceled.
+        QCOMPARE(future.progressValue(), 0);
+        QCOMPARE(future.progressMaximum(), threadCount * 2);
     }
 }
 

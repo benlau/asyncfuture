@@ -62,10 +62,10 @@ namespace Tools {
                 return;
             }
             T res = func(context->input[pos]);
-            //@TODO - update prgress value
 
             context->mutex.lock();
             context->output[pos] = res;
+            defer.setProgressValue(defer.future().progressValue() + 1);
 
             if (!defer.future().isCanceled()) {
                 int index = context->index;
@@ -85,6 +85,8 @@ namespace Tools {
             }
             context->mutex.unlock();
         };
+
+        defer.setProgressRange(0, input.size());
 
         for (int i = 0 ; i < insertCount ; i++) {
             QtConcurrent::run(pool, context->worker, i);
