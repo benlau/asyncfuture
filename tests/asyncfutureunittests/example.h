@@ -29,5 +29,7 @@ private slots:
     void example_CancellationToken();
 
     void example_Combinator_timeout();
+
+    void example_network_reply();
 };
 

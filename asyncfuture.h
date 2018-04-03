@@ -514,15 +514,15 @@ public:
     }
 
     void complete(QFuture<T> future) {
-        incRefCount();
+        incWeakRefCount();
         auto onFinished = [=]() {
             this->completeByFinishedFuture<T>(future);
-            this->decRefCount();
+            this->decWeakRefCount();
         };
 
         auto onCanceled = [=]() {
             this->cancel();
-            this->decRefCount();
+            this->decWeakRefCount();
         };
 
         watch(future,
@@ -536,16 +536,16 @@ public:
 
     template <typename ANY>
     void complete(QFuture<QFuture<ANY>> future) {
-        incRefCount();
+        incWeakRefCount();
 
         auto onFinished = [=]() {
             complete(future.result());
-            this->decRefCount();
+            this->decWeakRefCount();
         };
 
         auto onCanceled = [=]() {
             this->cancel();
-            this->decRefCount();
+            this->decWeakRefCount();
         };
 
         watch(future,
@@ -566,24 +566,24 @@ public:
 
     template <typename Member>
     void cancel(QObject* sender, Member member) {
-        incRefCount();
+        incWeakRefCount();
         QObject::connect(sender, member,
                          this, [=]() {
             this->cancel();
-            decRefCount();
+            decWeakRefCount();
         });
     }
 
     template <typename ANY>
     void cancel(QFuture<ANY> future) {
-        incRefCount();
+        incWeakRefCount();
         auto onFinished = [=]() {
             cancel();
-            decRefCount();
+            decWeakRefCount();
         };
 
         auto onCanceled = [=]() {
-            decRefCount();
+            decWeakRefCount();
         };
 
         watch(future,
@@ -593,13 +593,13 @@ public:
               onCanceled);
     }
 
-    void incRefCount() {
+    void incWeakRefCount() {
         mutex.lock();
         refCount++;
         mutex.unlock();
     }
 
-    void decRefCount() {
+    void decWeakRefCount() {
         int count;
 
         mutex.lock();
@@ -635,7 +635,7 @@ public:
 
         auto deleter = [](DeferredFuture<T> *object) {
             object->decStrongRef();
-            object->decRefCount();
+            object->decWeakRefCount();
         };
 
         QSharedPointer<DeferredFuture<T> > ptr(new DeferredFuture<T>(), deleter);
@@ -716,7 +716,7 @@ public:
             return;
         }
 
-        incRefCount();
+        incWeakRefCount();
 
         mutex.lock();
         int index = count++;
@@ -726,10 +726,10 @@ public:
         Private::watch(future, this, 0,
                        [=]() {
             completeFutureAt(index);
-            decRefCount();
+            decWeakRefCount();
         },[=]() {
             cancelFutureAt(index);
-            decRefCount();
+            decWeakRefCount();
         });
     }
 
@@ -739,7 +739,7 @@ public:
             // Regardless of the no. of instance of QSharedPointer<CombinedFuture>,
             // it only increase the reference by one.
             object->decStrongRef();
-            object->decRefCount();
+            object->decWeakRefCount();
         };
 
         QSharedPointer<CombinedFuture> ptr(new CombinedFuture(settleAllMode), deleter);
