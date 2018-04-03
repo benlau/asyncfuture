@@ -1,0 +1,22 @@
+{
+   <not_related_memoryleak>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:calloc
+   fun:allocate_dtv
+   fun:_dl_allocate_tls
+   fun:allocate_stack
+   fun:pthread_create@@GLIBC_2.2.5
+   fun:_ZN7QThread5startENS_8PriorityE
+   fun:_ZN18QThreadPoolPrivate11startThreadEP9QRunnable
+   fun:_ZN18QThreadPoolPrivate8tryStartEP9QRunnable
+   fun:_ZN11QThreadPool8tryStartEP9QRunnable
+   fun:_ZN12QtConcurrent16ThreadEngineBase19startThreadInternalEv
+   fun:_ZN12QtConcurrent16ThreadEngineBase12startThreadsEv
+   fun:_ZN12QtConcurrent16ThreadEngineBase3runEv
+   obj:*/libQt5Core.so.*
+   obj:*/libQt5Core.so.*
+   fun:start_thread
+   fun:clone
+}
+

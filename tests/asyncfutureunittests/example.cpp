@@ -514,24 +514,3 @@ void Example::example_Combinator_timeout()
     QCOMPARE(returningFuture.progressMaximum(), 2);
 }
 
-void Example::example_network_reply()
-{
-    QNetworkAccessManager manager;
-
-    QNetworkRequest request(QUrl("https://httpbin.org/ip"));
-
-    QNetworkReply* reply = manager.get(request);
-
-    auto future = observe(reply, &QNetworkReply::finished).subscribe([&]() {
-        QString content = reply->readAll();
-        reply->deleteLater();
-        return content;
-    }).future();
-
-    await(future);
-
-    qDebug() << future.result();
-
-    QVERIFY(future.result().size() > 0);
-}
-
