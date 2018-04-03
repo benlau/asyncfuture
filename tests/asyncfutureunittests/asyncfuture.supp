@@ -20,3 +20,31 @@
    fun:clone
 }
 
+{
+   <qtconurrent_mapped_5_10>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:_Znwm
+   fun:_ZN18QFutureWatcherBase5eventEP6QEvent
+   fun:_ZN16QCoreApplication15notifyInternal2EP7QObjectP6QEvent
+   fun:_ZN23QCoreApplicationPrivate16sendPostedEventsEP7QObjectiP11QThreadData
+   obj:/home/travis/build/benlau/asyncfuture/Qt/5.10.1/gcc_64/lib/libQt5Core.so.5.10.1
+   fun:g_main_context_dispatch
+   obj:/lib/x86_64-linux-gnu/libglib-2.0.so.0.4002.0
+   fun:g_main_context_iteration
+   fun:_ZN20QEventDispatcherGlib13processEventsE6QFlagsIN10QEventLoop17ProcessEventsFlagEE
+   fun:_ZN10QEventLoop4execE6QFlagsINS_17ProcessEventsFlagEE
+   fun:_ZN4Test5awaitIvEEv7QFutureIT_Ei
+   fun:_ZN4Spec21test_QtConcurrent_mapEv
+   fun:_ZN4Spec18qt_static_metacallEP7QObjectN11QMetaObject4CallEiPPv
+   fun:_ZNK11QMetaMethod6invokeEP7QObjectN2Qt14ConnectionTypeE22QGenericReturnArgument16QGenericArgumentS5_S5_S5_S5_S5_S5_S5_S5_S5_
+   obj:/home/travis/build/benlau/asyncfuture/Qt/5.10.1/gcc_64/lib/libQt5Test.so.5.10.1
+   obj:/home/travis/build/benlau/asyncfuture/Qt/5.10.1/gcc_64/lib/libQt5Test.so.5.10.1
+   obj:/home/travis/build/benlau/asyncfuture/Qt/5.10.1/gcc_64/lib/libQt5Test.so.5.10.1
+   fun:_ZN5QTest4qRunEv
+   fun:_ZN5QTest5qExecEP7QObjectiPPc
+   fun:_ZN5QTest5qExecEP7QObjectRK11QStringList
+   fun:_ZN10TestRunner3runEP7QObjectRK11QStringList
+   fun:_ZN10TestRunner4execE11QStringList
+   fun:main
+}
