@@ -1,7 +1,7 @@
 language : cpp
 dist: trusty
 env:
-  - TARGET_NAME="Qt 5.7" TARGET_PACKAGE="qt.57.gcc_64"
+  - TARGET_NAME="Qt 5.11 preview" TARGET_PACKAGE="preview.qt.qt5.511.gcc_64"
 addons:
   apt:
     packages:
