@@ -2,7 +2,7 @@ language : cpp
 dist: trusty
 env:
   - TARGET_NAME="Qt 5.7" TARGET_PACKAGE="qt.57.gcc_64"
-  - TARGET_NAME="Qt 5.10" TARGET_PACKAGE="qt.qt5.510.gcc_64"
+  - TARGET_NAME="Qt 5.10" TARGET_PACKAGE="qt.qt5.5101.gcc_64"
 addons:
   apt:
     packages:
