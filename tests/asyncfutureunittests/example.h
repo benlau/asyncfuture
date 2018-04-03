@@ -8,6 +8,8 @@ public:
     explicit Example(QObject *parent = 0);
 
 private slots:
+    void cleanup();
+
     void example_Timer_timeout();
 
     void example_combine_multiple_future();

@@ -30,6 +30,11 @@ Example::Example(QObject *parent) : QObject(parent)
 
 }
 
+void Example::cleanup()
+{
+    QVERIFY(QThreadPool::globalInstance()->waitForDone(100));
+}
+
 /*
  * 1. Convert a signal from QObject into a QFuture object
  * https://github.com/benlau/asyncfuture
@@ -207,9 +212,6 @@ void Example::example_promise_like_complete_future()
 
 void Example::example_promise_like_timeout()
 {
-    QTimer* timer = new QTimer(this);
-    timer->setInterval(50);
-
     auto readFileworker = [](QString fileName) -> QString {
         Q_UNUSED(fileName);
         Automator::wait(1000);
@@ -217,14 +219,10 @@ void Example::example_promise_like_timeout()
     };
 
     auto read = [=](const QString &fileName) {
-        timer->start();
-
-        auto timeout = observe(timer, &QTimer::timeout).future();
-
         auto defer = deferred<QString>();
 
         defer.complete(QtConcurrent::run(readFileworker, fileName));
-        defer.cancel(timeout);
+        defer.cancel(Tools::timeout(50));
 
         return defer.future();
     };
@@ -243,8 +241,7 @@ void Example::example_promise_like_timeout()
 
     waitUntil(future);
     QCOMPARE(canceldCalled, true);
-    timer->deleteLater();
-    Automator::wait(500); // wait until the read is finished
+    Automator::wait(1100); // wait until the read is finished
 }
 
 void Example::example_fileactor()

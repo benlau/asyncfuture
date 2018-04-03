@@ -23,6 +23,10 @@ namespace Tools {
        auto defer = AsyncFuture::deferred<void>();
 
        runOnMainThread([=]() {
+           // Don't run QTimer::singleShot on non-main thread.
+           // It may not trigger the callback if the
+           // event loop of the sender thread is not
+           // running.
            QTimer::singleShot(value, [=]() mutable {
                auto d = defer;
                d.complete();
