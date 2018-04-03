@@ -2,29 +2,12 @@
 #include <QtTest>
 #include <TestRunner>
 #include <QtQuickTest>
+#include <XBacktrace.h>
 #include "example.h"
 #include "spec.h"
 #include "bugtests.h"
 #include "samplecode.h"
 #include "cookbook.h"
-
-#if defined(Q_OS_MAC) || defined(Q_OS_LINUX)
-#include <execinfo.h>
-#include <signal.h>
-#include <unistd.h>
-void handleBacktrace(int sig) {
-  void *array[100];
-  size_t size;
-
-  // get void*'s for all entries on the stack
-  size = backtrace(array, 100);
-
-  // print out all the frames to stderr
-  fprintf(stderr, "Error: signal %d:\n", sig);
-  backtrace_symbols_fd(array, size, STDERR_FILENO);
-  exit(1);
-}
-#endif
 
 static void waitForFinished(QThreadPool *pool)
 {
@@ -38,9 +21,7 @@ static void waitForFinished(QThreadPool *pool)
 
 int main(int argc, char *argv[])
 {
-#if defined(Q_OS_MAC) || defined(Q_OS_LINUX)
-    signal(SIGSEGV, handleBacktrace);
-#endif
+    XBacktrace::enableBacktraceLogOnUnhandledException();
 
     QCoreApplication app(argc, argv);
 
