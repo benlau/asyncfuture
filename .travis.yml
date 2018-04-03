@@ -17,6 +17,7 @@ before_install:
 script:
     - VERSION=$(jq .version.label qpm.json)
     - VERSION=$(eval echo $VERSION)
+    - qpm check
     - if ! head -n 1 asyncfuture.h | grep -q $VERSION; then echo "Version string mismatched"; exit -1 ;fi
     - git clone https://github.com/benlau/qtci.git
     - source qtci/path.env
@@ -25,6 +26,5 @@ script:
     - mkdir build
     - cd build
     - run-unittests ../tests/asyncfutureunittests/asyncfutureunittests.pro
-    - valgrind --num-callers=30 --leak-check=full --track-origins=yes ./asyncfutureunittests
-    - qpm check
+    - valgrind --num-callers=30 --leak-check=full --track-origins=yes --gen-suppressions=all --suppressions=asyncfuture.supp ./asyncfutureunittests
 
