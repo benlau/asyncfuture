@@ -12,8 +12,13 @@ namespace Tools {
 
     template <typename Functor>
     inline void runOnMainThread(Functor func) {
+#if QT_VERSION < QT_VERSION_CHECK(5, 10, 0)
+
         QObject tmp;
         QObject::connect(&tmp, &QObject::destroyed, QCoreApplication::instance(), func, Qt::QueuedConnection);
+#else
+        QMetaObject::invokeMethod(QCoreApplication::instance(), func, Qt::QueuedConnection);
+#endif
     }
 
     /// Returns a QFuture<void> which will be completed after msec specified by value.

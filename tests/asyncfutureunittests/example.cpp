@@ -241,7 +241,8 @@ void Example::example_promise_like_timeout()
 
     waitUntil(future);
     QCOMPARE(canceldCalled, true);
-    Automator::wait(1100); // wait until the read is finished
+
+    QThreadPool::globalInstance()->waitForDone(1050);// wait until the read function is finished
 }
 
 void Example::example_fileactor()
