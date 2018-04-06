@@ -69,22 +69,32 @@ namespace Tools {
 
         context->worker = [defer, pool, context, func](int pos) mutable {
             if (defer.future().isCanceled()) {
+                context->mutex.lock();
+                context->worker = nullptr;
+                context->mutex.unlock();
                 return;
             }
-            T res = func(context->input[pos]);
+
+            context->mutex.lock();
+            auto value = context->input[pos];
+            context->mutex.unlock();
+
+            T res = func(value);
 
             context->mutex.lock();
             context->output[pos] = res;
-            defer.setProgressValue(defer.future().progressValue() + 1);
 
             if (!defer.future().isCanceled()) {
-                int index = context->index;
+                int index = context->index ;
                 if (index < context->input.size()) {
-                    QtConcurrent::run(pool, context->worker, index++);
-                    context->index = index;
+                    auto worker = context->worker;
+                    QtConcurrent::run(pool, worker, index);
+                    context->index++;
                 }
 
                 context->finishedCount++;
+                defer.setProgressValue(context->finishedCount);
+
                 if (context->finishedCount >= context->input.size()) {
                     defer.complete(context->output.toList());
                     context->worker = nullptr;
