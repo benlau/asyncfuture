@@ -1198,6 +1198,20 @@ public:
         subscribe([]() {}, func);
     }
 
+    void onFinished(std::function<void()> func) {
+        auto runOnMainThread = [=]() {
+#if QT_VERSION < QT_VERSION_CHECK(5, 10, 0)
+
+        QObject tmp;
+        QObject::connect(&tmp, &QObject::destroyed, QCoreApplication::instance(), func, Qt::QueuedConnection);
+#else
+        QMetaObject::invokeMethod(QCoreApplication::instance(), func, Qt::QueuedConnection);
+#endif
+        };
+
+        subscribe(runOnMainThread, runOnMainThread);
+    }
+
     template <typename ANY>
     void onCanceled(Deferred<ANY> object) {
         subscribe([]() {}, [=]() {

@@ -90,6 +90,22 @@ namespace Test {
         loop.exec();
     }
 
+    class Counter {
+    public:
+        inline Counter() {
+            called = 0;
+        }
+
+        inline std::function<void()> operator() () {
+            return [=]() {
+                called++;
+            };
+        }
+
+    int called;
+
+    };
+
 }
 
 #endif // TESTFUNCTIONS_H

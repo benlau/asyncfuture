@@ -1092,6 +1092,43 @@ void Spec::test_Observable_onCompleted()
     QCOMPARE(called, true);
 }
 
+void Spec::test_Observable_onFinished()
+{
+    {
+        Counter onFinished;
+
+        QCOMPARE(onFinished.called, 0);
+
+        auto defer = deferred<void>();
+
+        defer.onFinished(onFinished());
+
+        defer.complete();
+
+        await(defer.future());
+
+        QTRY_COMPARE(onFinished.called, 1);
+    }
+
+    {
+
+        Counter onFinished;
+
+        QCOMPARE(onFinished.called, 0);
+
+        auto defer = deferred<void>();
+
+        defer.onFinished(onFinished());
+
+        defer.cancel();
+
+        await(defer.future());
+
+        QTRY_COMPARE(onFinished.called, 1);
+    }
+
+}
+
 void Spec::test_Observable_setProgressValue()
 {
 
