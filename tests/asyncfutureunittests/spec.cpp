@@ -1644,6 +1644,42 @@ void Spec::test_Deferred_setProgress()
     QCOMPARE(defer.future().progressValue(), 3);
 }
 
+void Spec::test_Deferred_reportStarted()
+{
+    {
+        auto defer = deferred<void>();
+
+        Counter started;
+        QFutureWatcher<void> watcher;
+
+        connect(&watcher, &QFutureWatcher<void>::started, started());
+        watcher.setFuture(defer.future());
+
+        defer.reportStarted();
+
+        Automator::wait(10);
+
+        QCOMPARE(started.called, 1);
+    }
+
+    {
+        auto defer = deferred<int>();
+
+        Counter started;
+        QFutureWatcher<void> watcher;
+
+        connect(&watcher, &QFutureWatcher<void>::started, started());
+        watcher.setFuture(defer.future());
+
+        defer.reportStarted();
+
+        Automator::wait(10);
+
+        QCOMPARE(started.called, 1);
+    }
+
+}
+
 void Spec::test_Combinator()
 {
     {

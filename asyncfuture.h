@@ -1301,6 +1301,10 @@ public:
         deferredFuture->setProgressRange(minimum, maximum);
     }
 
+    void reportStarted() {
+        deferredFuture->reportStarted();
+    }
+
 protected:
     QSharedPointer<Private::DeferredFuture<T> > deferredFuture;
 };
@@ -1341,6 +1345,10 @@ public:
     template <typename ANY>
     void track(QFuture<ANY> future) {
         deferredFuture->track(future);
+    }
+
+    void reportStarted() {
+        deferredFuture->reportStarted();
     }
 
 protected:
