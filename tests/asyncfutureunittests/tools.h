@@ -76,6 +76,9 @@ namespace Tools {
             }
 
             context->mutex.lock();
+            if (pos == 0) {
+                defer.reportStarted();
+            }
             auto value = context->input[pos];
             context->mutex.unlock();
 
