@@ -196,58 +196,6 @@ void Spec::test_QtConcurrent_exception()
     QCOMPARE(future.isResultReadyAt(0) , false);
 }
 
-#if QT_VERSION > QT_VERSION_CHECK(5, 7, 1)
-void Spec::test_QtConcurrent_map()
-{
-    QFuture<void> future;
-    QFutureWatcher<void> watcher;
-
-    QList<int> input;
-    input << 0 << 1 << 2;
-
-    future = QtConcurrent::map(input, square);
-    bool started = false;
-    bool paused = false;
-    bool resumed = false;
-
-    connect(&watcher, &QFutureWatcher<void>::started, [&]() {
-        started = true;
-    });
-
-    connect(&watcher, &QFutureWatcher<void>::paused, [&]() {
-        paused = true;
-    });
-
-    connect(&watcher, &QFutureWatcher<void>::resumed, [&]() {
-        resumed = true;
-    });
-
-    watcher.setFuture(future);
-
-    QTRY_COMPARE(started, true);
-    QTRY_COMPARE(paused, false);
-    QTRY_COMPARE(resumed, false);
-
-    future.pause();
-
-    QCOMPARE(paused, false);
-
-    await(future, 5000);
-
-    QCOMPARE(future.isFinished(), false);
-
-    future.resume();
-
-    await(future, 1000);
-
-    QCOMPARE(future.isFinished(), true);
-
-    QCOMPARE(started, true);
-    QCOMPARE(paused, true);
-    QCOMPARE(resumed, true);
-}
-#endif
-
 #define TYPEOF(x) std::decay<decltype(x)>::type
 
 void Spec::test_function_traits()
