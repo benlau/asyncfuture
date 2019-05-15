@@ -527,7 +527,7 @@ public:
 
         watch(future,
               this,
-              0,
+              nullptr,
               onFinished,
               onCanceled);
 
@@ -665,7 +665,7 @@ public:
     }
 
 protected:
-    DeferredFuture(QObject* parent = 0): QObject(parent),
+    DeferredFuture(QObject* parent = nullptr): QObject(parent),
                                          QFutureInterface<T>(QFutureInterface<T>::Running),
                                          refCount(1),
                                          strongRefCount(0) {
@@ -687,8 +687,10 @@ private:
     completeByFinishedFuture(QFuture<T> future) {
         if (future.resultCount() > 1) {
             complete(future.results());
-        } else {
+        } else if (future.resultCount() == 1) {
             complete(future.result());
+        } else {
+            complete();
         }
     }
 

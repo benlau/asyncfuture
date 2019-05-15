@@ -1,8 +1,8 @@
 language : cpp
 dist: trusty
 env:
-  - TARGET_NAME="Qt 5.7" TARGET_PACKAGE="qt.57.gcc_64"
-  - TARGET_NAME="Qt 5.10" TARGET_PACKAGE="qt.qt5.5101.gcc_64"
+  - QT_VERSION="5.7" TARGET_PACKAGE="qt.57.gcc_64"
+  - QT_VERSION="5.10" TARGET_PACKAGE="qt.qt5.5101.gcc_64"
 addons:
   apt:
     packages:
@@ -26,10 +26,9 @@ script:
     - git clone https://github.com/benlau/qtci.git
     - export QT_CI_PACKAGES=${TARGET_PACKAGE} 
     - source qtci/path.env
-    - wget -q https://download.qt.io/archive/online_installers/3.0/qt-unified-linux-x64-3.0.2-online.run
-    - extract-qt-installer qt-unified-linux-x64-3.0.2-online.run `pwd`/Qt
-    - QT_HOME=$PWD/`find Qt -name gcc_64`
-    - export PATH=${QT_HOME}/bin:$PATH
+    - install-qt-online ${QT_VERSION} `pwd`/Qt
+    - ls
+    - source qt-${QT_VERSION}.env
     - mkdir build/
     - cd build
     - run-unittests ../tests/asyncfutureunittests/asyncfutureunittests.pro
