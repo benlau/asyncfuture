@@ -845,7 +845,6 @@ void Spec::test_Observable_subscribe_return_canceledFuture()
 
 void Spec::test_Observable_subscribe_return_mappedFuture()
 {
-
     auto future = observe(QtConcurrent::run([](){})).subscribe([=]() {
         QList<int> input;
         input << 1 << 2 << 3;
@@ -858,6 +857,22 @@ void Spec::test_Observable_subscribe_return_mappedFuture()
     QCOMPARE(future.progressMaximum(), 3);
     QList<int> expected;
     expected << 1 << 4 << 9;
+
+    QCOMPARE(future.results(), expected);
+}
+
+void Spec::test_Observable_subscribe_return_emptyListFuture()
+{
+    auto future = observe(QtConcurrent::run([](){})).subscribe([=]() {
+        QList<int> res;
+        auto defer = AsyncFuture::deferred<int>();
+        defer.complete(res);
+        return defer.future();
+    }).future();
+
+    await(future);
+
+    QList<int> expected;
 
     QCOMPARE(future.results(), expected);
 }
@@ -1327,6 +1342,19 @@ void Spec::test_Deferred_complete_list()
     QList<int> expected;
 
     expected << 1 << 2 << 3;
+
+    defer.complete(expected);
+
+    auto future = defer.future();
+    QVERIFY(future.isFinished());
+
+    QVERIFY(future.results() == expected);
+}
+
+void Spec::test_Deferred_complete_empty_list()
+{
+    auto defer = deferred<int>();
+    QList<int> expected;
 
     defer.complete(expected);
 

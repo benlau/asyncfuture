@@ -7,7 +7,7 @@ class BugTests : public QObject
 {
     Q_OBJECT
 public:
-    explicit BugTests(QObject *parent = 0);
+    explicit BugTests(QObject *parent = nullptr);
 
 signals:
 
@@ -19,6 +19,7 @@ private slots:
     void test_nested_subscribe_in_thread();
 
     void test_issue4();
+
 };
 
 #endif // BUGTESTS_H

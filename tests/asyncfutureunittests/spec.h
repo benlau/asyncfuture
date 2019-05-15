@@ -5,7 +5,7 @@
 class SignalProxy : public QObject {
     Q_OBJECT
 public:
-    inline SignalProxy(QObject* parent = 0) : QObject(parent) {
+    inline SignalProxy(QObject* parent = nullptr) : QObject(parent) {
     }
 
 signals:
@@ -17,7 +17,7 @@ class Spec : public QObject
 {
     Q_OBJECT
 public:
-    explicit Spec(QObject *parent = 0);
+    explicit Spec(QObject *parent = nullptr);
 
 signals:
 
@@ -69,6 +69,8 @@ private slots:
 
     void test_Observable_subscribe_return_mappedFuture();
 
+    void test_Observable_subscribe_return_emptyListFuture();
+
     void test_Observable_subscribe_exception();
 
     void test_Observable_onProgress();
@@ -88,8 +90,8 @@ private slots:
     void test_Deferred();
     void test_Deferred_complete_future();
     void test_Deferred_complete_future_future();
-
     void test_Deferred_complete_list();
+    void test_Deferred_complete_empty_list();
     void test_Deferred_cancel_future();
 
     void test_Deferred_future_cancel();
