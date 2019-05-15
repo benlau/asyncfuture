@@ -48,3 +48,29 @@
    fun:_ZN10TestRunner4execE11QStringList
    fun:main
 }
+
+{
+   <qtconcurrent_Uninitialised_value_after>
+   Memcheck:Cond
+   fun:_ZN12QtConcurrent18BlockSizeManagerV213timeAfterUserEv
+   fun:_ZN12QtConcurrent13IterateKernelIN5QListIiE14const_iteratorEiE17forThreadFunctionEv
+   fun:_ZN12QtConcurrent13IterateKernelIN5QListIiE14const_iteratorEiE14threadFunctionEv
+   fun:_ZN12QtConcurrent16ThreadEngineBase3runEv
+   obj:*/libQt5Core.so.*
+   obj:*/libQt5Core.so.*
+   fun:start_thread
+   fun:clone
+}
+
+{
+   <qtconcurrent_Uninitialised_value_before>
+   Memcheck:Cond
+   fun:_ZN12QtConcurrent18BlockSizeManagerV214timeBeforeUserEv
+   fun:_ZN12QtConcurrent13IterateKernelIN5QListIiE14const_iteratorEiE17forThreadFunctionEv
+   fun:_ZN12QtConcurrent13IterateKernelIN5QListIiE14const_iteratorEiE14threadFunctionEv
+   fun:_ZN12QtConcurrent16ThreadEngineBase3runEv
+   obj:*/libQt5Core.so.*
+   obj:*/libQt5Core.so.*
+   fun:start_thread
+   fun:clone
+}

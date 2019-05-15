@@ -32,7 +32,7 @@ Example::Example(QObject *parent) : QObject(parent)
 
 void Example::cleanup()
 {
-    QVERIFY(QThreadPool::globalInstance()->waitForDone(100));
+    QVERIFY(QThreadPool::globalInstance()->waitForDone(2000));
 }
 
 /*
