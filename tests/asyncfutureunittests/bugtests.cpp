@@ -101,3 +101,50 @@ void BugTests::test_issue4()
 
     QCOMPARE(actualValue, 78);
 }
+
+void BugTests::test_canceled_before_finished() {
+
+    class TestClass {
+    public:
+        void doWork() {
+
+            if(m_doWorkFuture.isRunning() || m_doWorkFuture.isStarted()) {
+                m_doWorkFuture.cancel();
+            }
+
+            int currentCount = m_count;
+            auto runFuture = QtConcurrent::run([currentCount](){
+                return currentCount + 1;
+            });
+
+            m_doWorkFuture = runFuture;
+
+            m_subscribeFuture = observe(runFuture).subscribe([this](){
+                m_finishCount++;
+            },
+            [this](){
+                m_cancelCount++;
+            }).future();
+
+        }
+
+        void waitToFinish() {
+            await(m_subscribeFuture);
+        }
+
+        QFuture<void> m_subscribeFuture;
+        QFuture<int> m_doWorkFuture;
+        int m_count = 0;
+        int m_finishCount = 0;
+        int m_cancelCount = 0;
+    };
+
+    TestClass myTest;
+    myTest.doWork();
+    myTest.doWork();
+    myTest.doWork();
+    myTest.waitToFinish();
+
+    QCOMPARE(myTest.m_finishCount, 1);
+    QCOMPARE(myTest.m_cancelCount, 2);
+}

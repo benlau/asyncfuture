@@ -20,6 +20,8 @@ private slots:
 
     void test_issue4();
 
+    void test_canceled_before_finished();
+
 };
 
 #endif // BUGTESTS_H

@@ -356,11 +356,18 @@ void watch(QFuture<T> future,
 
         QObject::connect(watcher, &QFutureWatcher<T>::finished,
                          contextObject, [=]() {
+            bool watcherCancelled = watcher->isCanceled();
+
             delete watcher;
             if (ownerAlive.isNull()) {
                 return;
             }
-            finished();
+
+            if(watcherCancelled) {
+                canceled();
+            } else {
+                finished();
+            }
         });
 
         QObject::connect(watcher, &QFutureWatcher<T>::canceled,
