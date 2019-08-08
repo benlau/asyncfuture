@@ -621,7 +621,12 @@ public:
         }
 
         if (strongRefCount == 0 && isFinished()) {
-            delete this;
+            //This prevents deletion this on a seperate thread
+            if(thread() != QThread::currentThread()) {
+                QMetaObject::invokeMethod(this, "deleteLater");
+            } else {
+                delete this;
+            }
         }
     }
 
@@ -676,6 +681,7 @@ protected:
                                          QFutureInterface<T>(QFutureInterface<T>::Running),
                                          refCount(1),
                                          strongRefCount(0) {
+            moveToThread(QCoreApplication::instance()->thread());
     }
 
     QMutex mutex;
