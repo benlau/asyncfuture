@@ -347,6 +347,27 @@ void Spec::test_observe_future_future()
     QCOMPARE(result.size(), 4);
 }
 
+void Spec::test_observe_future_future_finished()
+{
+    auto worker = [=]() {
+        QList<int> list;
+        list << 1 << 2 << 3 << 4;
+        return finished(list);
+    };
+
+    // Convert QFuture<QFuture<int>> to QFuture<int>
+    QFuture<int> future = observe(QtConcurrent::run(worker)).future();
+    QVERIFY(!future.isFinished());
+    await(future, 100);
+
+    QCOMPARE(future.progressValue(), 4);
+    QCOMPARE(future.isFinished(), true);
+    QCOMPARE(future.isCanceled(), false);
+
+    QList<int> result = future.results();
+    QCOMPARE(result.size(), 4);
+}
+
 void Spec::test_Observable_context()
 {
 
@@ -727,6 +748,22 @@ void Spec::test_Observable_subscribe()
         waitUntil(o.future());
         QCOMPARE(c1.called, true);
         QCOMPARE(c1.value, 10);
+        QCOMPARE(result.isFinished(), true);
+        QCOMPARE(result.isCanceled(), false);
+    }
+
+    {
+        // complete
+        auto f = finished<int>(5);
+        auto c1 = Callable<int>();
+        auto result = observe(f).subscribe(c1.func).future();
+
+        QCOMPARE(result.isFinished(), false);
+        QCOMPARE(c1.called, false);
+
+        waitUntil(f);
+        QCOMPARE(c1.called, true);
+        QCOMPARE(c1.value, 5);
         QCOMPARE(result.isFinished(), true);
         QCOMPARE(result.isCanceled(), false);
     }
@@ -1840,6 +1877,33 @@ void Spec::test_Combinator_add_to_already_finished()
     }
 }
 
+void Spec::test_Combinator_add_to_already_finished_finished()
+{
+    {
+        // case: combine(true), cancel
+        auto d1 = finished<int>(1);
+        auto d2 = finished<QString>("second");
+        auto d3 = finished();
+        auto d4 = deferred<bool>();
+
+        Combinator copy;
+
+        {
+            auto combinator = combine();
+            copy = combinator;
+
+            combinator << d1 << d2 << d3;
+
+            QVERIFY(waitUntil(combinator.future(), 1000));
+        }
+
+        copy << d4.future();
+        d4.complete(true);
+
+        QVERIFY(waitUntil(copy.future(), 1000)); // It is already resolved
+    }
+}
+
 void Spec::test_Combinator_progressValue()
 {
 
@@ -1896,3 +1960,21 @@ void Spec::test_alive()
     QCOMPARE(TrackingData::aliveCount(), 0);
 
 }
+
+void Spec::test_finished() {
+    {
+        auto f = AsyncFuture::finished();
+        QCOMPARE(f.isRunning(), false);
+        QCOMPARE(f.isFinished(), true);
+        QCOMPARE(f.isCanceled(), false);
+    }
+    {
+        auto f = AsyncFuture::finished<int>(5);
+        QCOMPARE(f.isRunning(), false);
+        QCOMPARE(f.isFinished(), true);
+        QCOMPARE(f.isCanceled(), false);
+        QCOMPARE(f.result(), 5);
+    }
+}
+
+
