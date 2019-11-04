@@ -608,5 +608,47 @@ There has few examples of different use-cases in this source file:
 
 [asyncfuture/example.cpp at master · benlau/asyncfuture](https://github.com/benlau/asyncfuture/blob/master/tests/asyncfutureunittests/example.cpp)
 
+Building Testcases
+==================
+
+qpm needs to install, see download instructions at http://www.qpm.io/
+
+After cloning the asyncfuture repository run the following commands:
+
+```shell
+
+cd asyncfuture/tests/asyncfutureunittests
+cat qpm.json
+
+```
+
+qpm.json should look something like this:
+
+```json
+
+{
+  "dependencies": [
+    "com.github.benlau.testable@1.0.2.22",
+    "com.github.benlau.qtshell@0.4.6",
+    "net.efever.xbacktrace@0.0.1"
+  ]
+}
+
+```
+
+Install all the dependencies like this:
+
+
+```shell
+
+qpm install com.github.benlau.testable@1.0.2.22
+qpm install com.github.benlau.qtshell@0.4.6
+qpm install net.efever.xbacktrace@0.0.1
+
+
+```
+
+Now open asyncfuture.pro in QtCreator and build and run testcases.
+
 
 
