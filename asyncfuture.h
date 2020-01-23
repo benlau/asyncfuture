@@ -142,7 +142,7 @@ struct signal_traits<R (C::*)()> {
 
 template <typename R, typename C, typename ARG0>
 struct signal_traits<R (C::*)(ARG0)> {
-    typedef ARG0 result_type;
+    typedef typename std::decay<ARG0>::type result_type;
 };
 
 template <typename T>
