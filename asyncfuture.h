@@ -1472,21 +1472,21 @@ inline Combinator combine(CombinatorMode mode = FailFast) {
 }
 
 
-inline QFuture<void> finished() {
+inline QFuture<void> completed() {
    QFutureInterface<void> fi;
    fi.reportFinished();
    return QFuture<void>(&fi);
 }
 
 template <typename T>
-QFuture<T> finished(const T &val) {
+QFuture<T> completed(const T &val) {
    QFutureInterface<T> fi;
    fi.reportFinished(&val);
    return QFuture<T>(&fi);
 }
 
 template <typename T>
-QFuture<T> finished(const QList<T> &val) {
+QFuture<T> completed(const QList<T> &val) {
     QFutureInterface<T> fi;
     fi.reportResults(val.toVector());
     fi.reportFinished();

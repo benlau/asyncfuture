@@ -347,12 +347,12 @@ void Spec::test_observe_future_future()
     QCOMPARE(result.size(), 4);
 }
 
-void Spec::test_observe_future_future_finished()
+void Spec::test_observe_future_future_completed()
 {
     auto worker = [=]() {
         QList<int> list;
         list << 1 << 2 << 3 << 4;
-        return finished(list);
+        return completed(list);
     };
 
     // Convert QFuture<QFuture<int>> to QFuture<int>
@@ -449,7 +449,7 @@ void Spec::test_Observable_context()
     /* Remarks: QFuture<void> + void(bool) */
     /* It is not a valid situation */
 
-    /* Extra case. Depend on a finished future */
+    /* Extra case. Depend on a completed future */
     {
         vCleanupVoidCalled = false;
         auto d = deferred<void>();
@@ -754,7 +754,7 @@ void Spec::test_Observable_subscribe()
 
     {
         // complete
-        auto f = finished<int>(5);
+        auto f = completed<int>(5);
         auto c1 = Callable<int>();
         auto result = observe(f).subscribe(c1.func).future();
 
@@ -1881,9 +1881,9 @@ void Spec::test_Combinator_add_to_already_finished_finished()
 {
     {
         // case: combine(true), cancel
-        auto d1 = finished<int>(1);
-        auto d2 = finished<QString>("second");
-        auto d3 = finished();
+        auto d1 = completed<int>(1);
+        auto d2 = completed<QString>("second");
+        auto d3 = completed();
         auto d4 = deferred<bool>();
 
         Combinator copy;
@@ -1961,15 +1961,15 @@ void Spec::test_alive()
 
 }
 
-void Spec::test_finished() {
+void Spec::test_completed() {
     {
-        auto f = AsyncFuture::finished();
+        auto f = AsyncFuture::completed();
         QCOMPARE(f.isRunning(), false);
         QCOMPARE(f.isFinished(), true);
         QCOMPARE(f.isCanceled(), false);
     }
     {
-        auto f = AsyncFuture::finished<int>(5);
+        auto f = AsyncFuture::completed<int>(5);
         QCOMPARE(f.isRunning(), false);
         QCOMPARE(f.isFinished(), true);
         QCOMPARE(f.isCanceled(), false);
