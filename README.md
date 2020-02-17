@@ -475,27 +475,27 @@ Remarks: It won't complete a future even the `progressValue` has been reached th
 
 Added since v0.3.6
 
-finished();
+completed();
 -----------
 
-The `finished<T>(const T&)` and `finished()` function return finished `QFuture<T>`
-and `QFuture<void>` . `finished<T>(const T&)` can be used intead of a `deferred<T>()`
+The `completed<T>(const T&)` and `completed()` function return finished `QFuture<T>`
+and `QFuture<void>` . `completed<T>(const T&)` can be used instead of a `deferred<T>()`
 when the result is already available. For example:
 
 ```c++
     auto defer = deferred<int>();
     defer.complete(5);
-    auto finishedFuture = defer.future();
+    auto completedFuture = defer.future();
 ```
 
 is equivalent to
 
 ```c++
-    auto finishedFuture = finished<int>(5);
+    auto completedFuture = completed<int>(5);
 ```
 
-`finished<T>(const T&)` is more conventant and light weight (memory and performance efficient) method of creating
-a finished `QFuture<T>`.
+`completed<T>(const T&)` is more convenient and light weight (memory and performance efficient) method of creating
+a completed `QFuture<T>`.
 
 Example
 
