@@ -344,35 +344,46 @@ void watch(QFuture<T> future,
     Q_ASSERT(owner);
     QPointer<QObject> ownerAlive = owner;
 
-    QFutureWatcher<T> *watcher = new QFutureWatcher<T>();
+    QPointer<QFutureWatcher<T>> watcher(new QFutureWatcher<T>());
 
     if (owner) {
         // Don't set parent as the context object as it may live in different thread
         QObject::connect(owner, &QObject::destroyed,
-                         watcher, &QObject::deleteLater);
+                         watcher, [watcher]() {
+            delete watcher;
+        });
     }
 
     if (contextObject) {
 
         QObject::connect(watcher, &QFutureWatcher<T>::finished,
                          contextObject, [=]() {
-            bool watcherCancelled = watcher->isCanceled();
+            bool watcherCancelled = true;
+            if(!watcher.isNull()) {
+                watcherCancelled = watcher->isCanceled();
+                delete watcher;
+            } else {
+                return;
+            }
 
-            delete watcher;
             if (ownerAlive.isNull()) {
                 return;
             }
 
-            if(watcherCancelled) {
-                canceled();
-            } else {
+            if(!watcherCancelled) {
                 finished();
+            } else {
+                canceled();
             }
         });
 
         QObject::connect(watcher, &QFutureWatcher<T>::canceled,
                          contextObject, [=]() {
-            delete watcher;
+            if(!watcher.isNull()) {
+                delete watcher;
+            } else {
+                return;
+            }
             if (ownerAlive.isNull()) {
                 return;
             }
@@ -380,10 +391,11 @@ void watch(QFuture<T> future,
         });
 
     } else {
-
         QObject::connect(watcher, &QFutureWatcher<T>::finished,
                          [=]() {
-            delete watcher;
+            if(!watcher.isNull()) {
+                delete watcher;
+            }
             if (ownerAlive.isNull()) {
                 return;
             }
@@ -392,7 +404,9 @@ void watch(QFuture<T> future,
 
         QObject::connect(watcher, &QFutureWatcher<T>::canceled,
                          [=]() {
-            delete watcher;
+            if(!watcher.isNull()) {
+                delete watcher;
+            }
             if (ownerAlive.isNull()) {
                 return;
             }
@@ -557,7 +571,7 @@ public:
 
         watch(future,
               this,
-              0,
+              nullptr,
               onFinished,
               onCanceled);
         // It don't track for the first level of future
@@ -595,7 +609,7 @@ public:
 
         watch(future,
               this,
-              0,
+              nullptr,
               onFinished,
               onCanceled);
     }
@@ -1080,7 +1094,7 @@ public:
 
         return _context<typename Private::function_traits<Completed>::result_type,
                        typename Private::function_traits<Completed>::result_type
-                >(contextObject, functor);
+                >(contextObject, functor, [](){});
     }
 
     template <typename Completed>
@@ -1094,7 +1108,35 @@ public:
 
         return _context<typename Private::future_traits<typename Private::function_traits<Completed>::result_type>::arg_type,
                        typename Private::function_traits<Completed>::result_type
-                >(contextObject, functor);
+                >(contextObject, functor, [](){});
+    }
+
+    template <typename Completed, typename Canceled>
+    typename std::enable_if< !Private::future_traits<typename Private::function_traits<Completed>::result_type>::is_future,
+    Observable<typename Private::function_traits<Completed>::result_type>
+    >::type
+    context(QObject* contextObject, Completed onCompleted, Canceled onCanceled)  {
+        /* functor return non-QFuture type */
+
+        ASYNC_FUTURE_CALLBACK_STATIC_ASSERT("context(callback): ", Completed);
+
+        return _context<typename Private::function_traits<Completed>::result_type,
+                typename Private::function_traits<Completed>::result_type
+                >(contextObject, onCompleted, onCanceled);
+    }
+
+    template <typename Completed, typename Canceled>
+    typename std::enable_if< Private::future_traits<typename Private::function_traits<Completed>::result_type>::is_future,
+    Observable<typename Private::future_traits<typename Private::function_traits<Completed>::result_type>::arg_type>
+    >::type
+    context(QObject* contextObject, Completed onCompleted, Canceled onCanceled)  {
+        /* functor returns a QFuture */
+
+        ASYNC_FUTURE_CALLBACK_STATIC_ASSERT("context(callback): ", Completed);
+
+        return _context<typename Private::future_traits<typename Private::function_traits<Completed>::result_type>::arg_type,
+                typename Private::function_traits<Completed>::result_type
+                >(contextObject, onCompleted, onCanceled);
     }
 
     /* subscribe function */
@@ -1244,13 +1286,13 @@ public:
     }
 
 private:
-    template <typename ObservableType, typename RetType, typename Completed>
-    Observable<ObservableType> _context(QObject* contextObject, Completed functor)  {
+    template <typename ObservableType, typename RetType, typename Completed, typename Canceled>
+    Observable<ObservableType> _context(QObject* contextObject, Completed onCompleted, Canceled onCanceled)  {
 
         auto future = Private::execute<ObservableType, RetType>(m_future,
                                                                contextObject,
-                                                               functor,
-                                                               [](){});
+                                                               onCompleted,
+                                                               onCanceled);
 
         return Observable<ObservableType>(future);
     }
@@ -1258,12 +1300,9 @@ private:
     template <typename ObservableType, typename RetType, typename Completed, typename Canceled>
     Observable<ObservableType> _subscribe(Completed onCompleted, Canceled onCanceled) {       
 
-        auto future = Private::execute<ObservableType, RetType>(m_future,
-                                                               QCoreApplication::instance(),
-                                                               onCompleted,
-                                                               onCanceled);
-
-        return Observable<ObservableType>(future);
+        return _context<ObservableType, RetType, Completed, Canceled>(QCoreApplication::instance(),
+                                                                      onCompleted,
+                                                                      onCanceled);
     }
 
 };

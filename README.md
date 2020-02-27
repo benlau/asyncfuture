@@ -361,13 +361,46 @@ observe(future).subscribe([](bool toggled) {
 
 ```
 
-**Observable&lt;R&gt; Observable&lt;T&gt;::context(QObject&#42; contextObject, Completed onCompleted)**
+**Observable&lt;R&gt; Observable&lt;T&gt;::context(QObject&#42; contextObject, Completed onCompleted, Cancel onCanceled)**
 
 *This API is for advanced users only*
 
-Add a callback function that listens to the finished signal from the observing QFuture object. The callback won't be triggered if the future is cancelled.
+Add a callback function that listens to the finished and canceled signals from the observing QFuture object.
 
-The callback is invoked in the thread of the context object, In case the context object is destroyed before the finished signal, the callback function won't be triggered and the returned Observable object will cancel its future.
+The callback is invoked in the thread of the context object. In case the context object is destroyed before the finished signal, the callback functions (onCompleted and onCanceled) won't be triggered and the returned Observable object will cancel its future.
+
+Note: An event loop, must be excuting on the the contextObject->thread() for nested observe().context() calls to work.
+Threads on the QThreadPool, generally don't have a QEventLoop executing, so manually creating and calling QEventLoop is
+necessary. For example:
+
+```c++
+auto worker = [&]() {
+    auto localTimeout = [](int sleepTime) {
+        return QtConcurrent::run([sleepTime]() {
+            QThread::currentThread()->msleep(sleepTime);
+        });
+    };
+
+    QEventLoop loop;
+
+    auto context = QSharedPointer<QObject>::create();
+
+    QThread* workerThread = QThread::currentThread();
+
+    observe(localTimeout(50)).context(context.get(), [localTimeout, context]() {
+        qDebug() << "First time localTimeout() finished
+        return localTimeout(50);
+    }).context(context.get(), [context, &called, workerThread, &loop]() {
+        qDebug() << "Second time localTimeout() finished
+        loop.quit();
+    });
+
+    loop.exec();
+};
+
+QtConcurrent::run(worker);
+
+```
 
 The return value is an `Observable<R>` object where R is the return type of the onCompleted callback.
 
