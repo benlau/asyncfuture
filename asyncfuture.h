@@ -336,13 +336,13 @@ void runInMainThread(F func) {
 
 template <typename T, typename Finished, typename Canceled>
 void watch(QFuture<T> future,
-           QObject* owner,
-           QObject* contextObject,
+		   const QObject* owner,
+		   const QObject* contextObject,
            Finished finished,
            Canceled canceled) {
 
     Q_ASSERT(owner);
-    QPointer<QObject> ownerAlive = owner;
+	QPointer<const QObject> ownerAlive = owner;
 
     QPointer<QFutureWatcher<T>> watcher(new QFutureWatcher<T>());
 
@@ -586,7 +586,7 @@ public:
     }
 
     template <typename Member>
-    void cancel(QObject* sender, Member member) {
+	void cancel(const QObject* sender, Member member) {
         incWeakRefCount();
         QObject::connect(sender, member,
                          this, [=]() {
@@ -1028,7 +1028,7 @@ eval(Functor functor, QFuture<T> future) {
  * e.g DeferredFuture<int> = Value<QFuture<int>>
  */
 template <typename DeferredType, typename RetType, typename T, typename Completed, typename Canceled>
-static QFuture<DeferredType> execute(QFuture<T> future, QObject* contextObject, Completed onCompleted, Canceled onCanceled) {
+static QFuture<DeferredType> execute(QFuture<T> future, const QObject* contextObject, Completed onCompleted, Canceled onCanceled) {
 
     auto defer = DeferredFuture<DeferredType>::create();
 
@@ -1087,7 +1087,7 @@ public:
     typename std::enable_if< !Private::future_traits<typename Private::function_traits<Completed>::result_type>::is_future,
     Observable<typename Private::function_traits<Completed>::result_type>
     >::type
-    context(QObject* contextObject, Completed functor)  {
+	context(const QObject* contextObject, Completed functor)  {
         /* functor return non-QFuture type */
 
         ASYNC_FUTURE_CALLBACK_STATIC_ASSERT("context(callback): ", Completed);
@@ -1101,7 +1101,7 @@ public:
     typename std::enable_if< Private::future_traits<typename Private::function_traits<Completed>::result_type>::is_future,
     Observable<typename Private::future_traits<typename Private::function_traits<Completed>::result_type>::arg_type>
     >::type
-    context(QObject* contextObject, Completed functor)  {
+	context(const QObject* contextObject, Completed functor)  {
         /* functor returns a QFuture */
 
         ASYNC_FUTURE_CALLBACK_STATIC_ASSERT("context(callback): ", Completed);
@@ -1115,7 +1115,7 @@ public:
     typename std::enable_if< !Private::future_traits<typename Private::function_traits<Completed>::result_type>::is_future,
     Observable<typename Private::function_traits<Completed>::result_type>
     >::type
-    context(QObject* contextObject, Completed onCompleted, Canceled onCanceled)  {
+    context(const QObject* contextObject, Completed onCompleted, Canceled onCanceled)  {
         /* functor return non-QFuture type */
 
         ASYNC_FUTURE_CALLBACK_STATIC_ASSERT("context(callback): ", Completed);
@@ -1129,7 +1129,7 @@ public:
     typename std::enable_if< Private::future_traits<typename Private::function_traits<Completed>::result_type>::is_future,
     Observable<typename Private::future_traits<typename Private::function_traits<Completed>::result_type>::arg_type>
     >::type
-    context(QObject* contextObject, Completed onCompleted, Canceled onCanceled)  {
+    context(const QObject* contextObject, Completed onCompleted, Canceled onCanceled)  {
         /* functor returns a QFuture */
 
         ASYNC_FUTURE_CALLBACK_STATIC_ASSERT("context(callback): ", Completed);
@@ -1287,7 +1287,7 @@ public:
 
 private:
     template <typename ObservableType, typename RetType, typename Completed, typename Canceled>
-    Observable<ObservableType> _context(QObject* contextObject, Completed onCompleted, Canceled onCanceled)  {
+    Observable<ObservableType> _context(const QObject* contextObject, Completed onCompleted, Canceled onCanceled)  {
 
         auto future = Private::execute<ObservableType, RetType>(m_future,
                                                                contextObject,
