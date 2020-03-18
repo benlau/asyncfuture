@@ -27,6 +27,7 @@ private slots:
 
     void test_combiner_handle_nested_progress();
     void test_combiner_combiner_handle_nested_progress();
+    void test_chained_obserable_progress();
 };
 
 #endif // BUGTESTS_H

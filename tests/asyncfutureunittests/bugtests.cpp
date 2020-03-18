@@ -281,3 +281,41 @@ void BugTests::test_combiner_combiner_handle_nested_progress()
 
     QCOMPARE(combineFuture.progressMaximum(), combineFuture.progressValue());
 }
+
+void BugTests::test_chained_obserable_progress()
+{
+    QVector<int> ints(100);
+    std::iota(ints.begin(), ints.end(), ints.size());
+    std::function<int (int)> func = [](int x)->int {
+        QThread::msleep(100);
+        return x * x;
+    };
+    QFuture<int> mappedFuture = QtConcurrent::mapped(ints, func);
+
+    auto nextFuture = AsyncFuture::observe(mappedFuture).subscribe([ints, func](){
+        QFuture<int> mappedFuture2 = QtConcurrent::mapped(ints, func);
+        return mappedFuture2;
+    }).future();
+
+    bool nextExecuted2 = false;
+    auto nextFuture2 = AsyncFuture::observe(nextFuture).subscribe([&nextExecuted2, ints, func](){
+        QFuture<int> mappedFuture2 = QtConcurrent::mapped(ints, func);
+        nextExecuted2 = true;
+        return mappedFuture2;
+    }).future();
+
+    int progress = -1;
+    AsyncFuture::observe(nextFuture2).onProgress([&progress, nextFuture2](){
+        QVERIFY2(progress <= nextFuture2.progressValue(), QString("%1 <= %2").arg(progress).arg(nextFuture2.progressValue()).toLocal8Bit());
+        progress = nextFuture2.progressValue();
+    });
+
+    await(nextFuture2);
+
+    QCOMPARE(nextFuture2.progressMinimum(), 0);
+    QCOMPARE(nextFuture2.progressMaximum(), ints.size() * 3);
+
+    QCOMPARE(nextExecuted2, true);
+    QCOMPARE(nextFuture2.progressValue(), ints.size() * 3);
+
+}

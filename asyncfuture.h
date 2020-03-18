@@ -340,7 +340,8 @@ void watch(QFuture<T> future,
 		   const QObject* contextObject,
            Finished finished,
            Canceled canceled,
-           std::function<void (int)> progress = nullptr) {
+           std::function<void (int value)> progress = nullptr,
+           std::function<void (int min, int max)> progressRange = nullptr) {
 
     Q_ASSERT(owner);
 	QPointer<const QObject> ownerAlive = owner;
@@ -398,6 +399,13 @@ void watch(QFuture<T> future,
             });
         }
 
+        if(progressRange) {
+            QObject::connect(watcher, &QFutureWatcher<T>::progressRangeChanged,
+                             contextObject, [=](int min, int max) {
+                progressRange(min, max);
+            });
+        }
+
     } else {
         QObject::connect(watcher, &QFutureWatcher<T>::finished,
                          [=]() {
@@ -426,6 +434,13 @@ void watch(QFuture<T> future,
             QObject::connect(watcher, &QFutureWatcher<T>::progressValueChanged,
                              [=](int value) {
                 progress(value);
+            });
+        }
+
+        if(progressRange) {
+            QObject::connect(watcher, &QFutureWatcher<T>::progressRangeChanged,
+                             [=](int min, int max) {
+                progressRange(min, max);
             });
         }
     }
@@ -473,14 +488,14 @@ public:
             if (thiz.isNull()) {
                 return;
             }
-            thiz->setProgressValue(value);
+            thiz->setWatchProgressValue(value);
         });
 
         QObject::connect(watcher, &QFutureWatcher<ANY>::progressRangeChanged, this, [=](int min, int max) {
             if (thiz.isNull()) {
                 return;
             }
-            thiz->setProgressRange(min, max);
+            thiz->setWatchProgressRange(min, max);
         });
 
         QObject::connect(watcher, &QFutureWatcher<ANY>::started, this, [=](){
@@ -497,8 +512,8 @@ public:
 
         watcher->setFuture(future);
 
-        QFutureInterface<T>::setProgressRange(future.progressMinimum(), future.progressMaximum());
-        QFutureInterface<T>::setProgressValue(future.progressValue());
+        setWatchProgressRange(future.progressMinimum(), future.progressMaximum());
+        setWatchProgressValue(future.progressValue());
 
         if (future.isStarted()) {
             QFutureInterface<T>::reportStarted();
@@ -706,6 +721,21 @@ public:
         QFutureInterface<T>::reportResult(value.value);
     }
 
+    void setParentProgressValue(int value) {
+        mutex.lock();
+        parentProgress.value = value;
+        updateProgressValue();
+        mutex.unlock();
+    }
+
+    void setParentProgressRange(int min, int max) {
+        mutex.lock();
+        parentProgress.min = min;
+        parentProgress.max = max;
+        updateProgressRanges();
+        mutex.unlock();
+    }
+
 protected:
     DeferredFuture(QObject* parent = nullptr): QObject(parent),
                                          QFutureInterface<T>(QFutureInterface<T>::Running),
@@ -723,6 +753,41 @@ private:
 
     // Unless it is zero, this object will not be destroyed.
     int strongRefCount;
+
+    class Progress {
+    public:
+        int range() { return max - min; }
+
+        int value = 0;
+        int min = 0;
+        int max = 0;
+    };
+
+    Progress parentProgress;
+    Progress watchProgress;
+
+    void setWatchProgressValue(int value) {
+        mutex.lock();
+        watchProgress.value = value;
+        updateProgressValue();
+        mutex.unlock();
+    }
+
+    void setWatchProgressRange(int min, int max) {
+        mutex.lock();
+        watchProgress.min = min;
+        watchProgress.max = max;
+        updateProgressRanges();
+        mutex.unlock();
+    }
+
+    void updateProgressRanges() {
+        QFutureInterface<T>::setProgressRange(0, parentProgress.range() + watchProgress.range());
+    }
+
+    void updateProgressValue() {
+        QFutureInterface<T>::setProgressValue(parentProgress.value + watchProgress.value);
+    }
 
     /// The future is already finished. It will take effect immediately
     template <typename ANY>
@@ -1075,6 +1140,10 @@ static QFuture<DeferredType> execute(QFuture<T> future, const QObject* contextOb
 
     auto defer = DeferredFuture<DeferredType>::create();
 
+//    qDebug() << "Future:" << future.progressMaximum();
+    defer->setParentProgressValue(future.progressValue());
+    defer->setParentProgressRange(future.progressMinimum(), future.progressMaximum());
+
     watch(future,
           contextObject,
           contextObject,[=]() {
@@ -1091,6 +1160,10 @@ static QFuture<DeferredType> execute(QFuture<T> future, const QObject* contextOb
     }, [=]() {
         onCanceled();
         defer->cancel();
+    }, [=](int progressValue) {
+        defer->setParentProgressValue(progressValue);
+    }, [=](int min, int max) {
+        defer->setParentProgressRange(min, max);
     });
 
     if (contextObject) {
