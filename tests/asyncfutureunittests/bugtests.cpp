@@ -211,3 +211,73 @@ void BugTests::test_finished_and_cancel_in_other_thread() {
 
     QCOMPARE(thread->m_cancelCount, 1);
 }
+
+void BugTests::test_combiner_handle_nested_progress()
+{
+    QVector<int> ints(100);
+    std::iota(ints.begin(), ints.end(), ints.size());
+    std::function<int (int)> func = [](int x)->int {
+        QThread::msleep(100);
+        return x * x;
+    };
+    QFuture<int> mappedFuture = QtConcurrent::mapped(ints, func);
+    QFuture<int> runFuture = QtConcurrent::run([]() {
+        QThread::msleep(100);
+        return 10;
+    });
+
+    AsyncFuture::Combinator combine;
+    combine << mappedFuture << runFuture;
+
+    auto combineFuture = combine.future();
+
+    QCOMPARE(combineFuture.progressMinimum(), 0);
+    QCOMPARE(combineFuture.progressMaximum(), ints.size() + 1);
+
+    int progress = 0;
+    AsyncFuture::observe(combineFuture).onProgress([&progress, combineFuture](){
+        QVERIFY(progress <= combineFuture.progressValue());
+        progress = combineFuture.progressValue();
+    });
+
+    await(combineFuture);
+
+    QCOMPARE(combineFuture.progressMaximum(), combineFuture.progressValue());
+}
+
+void BugTests::test_combiner_combiner_handle_nested_progress()
+{
+    QVector<int> ints(100);
+    std::iota(ints.begin(), ints.end(), ints.size());
+    std::function<int (int)> func = [](int x)->int {
+        QThread::msleep(100);
+        return x * x;
+    };
+    QFuture<int> mappedFuture = QtConcurrent::mapped(ints, func);
+    QFuture<int> runFuture = QtConcurrent::run([]() {
+        QThread::msleep(100);
+        return 10;
+    });
+
+    AsyncFuture::Combinator combine;
+    combine << mappedFuture << runFuture;
+
+    QFuture<int> mappedFuture2 = QtConcurrent::mapped(ints, func);
+    AsyncFuture::Combinator combine2;
+    combine2 << combine.future() << mappedFuture;
+
+    auto combineFuture = combine2.future();
+
+    QCOMPARE(combineFuture.progressMinimum(), 0);
+    QCOMPARE(combineFuture.progressMaximum(), 2 * ints.size() + 1);
+
+    int progress = -1;
+    AsyncFuture::observe(combineFuture).onProgress([&progress, combineFuture](){
+        QVERIFY(progress < combineFuture.progressValue());
+        progress = combineFuture.progressValue();
+    });
+
+    await(combineFuture);
+
+    QCOMPARE(combineFuture.progressMaximum(), combineFuture.progressValue());
+}

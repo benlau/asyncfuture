@@ -24,6 +24,9 @@ private slots:
     void test_canceled_before_finished();
 
     void test_finished_and_cancel_in_other_thread();
+
+    void test_combiner_handle_nested_progress();
+    void test_combiner_combiner_handle_nested_progress();
 };
 
 #endif // BUGTESTS_H

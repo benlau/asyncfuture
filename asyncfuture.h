@@ -339,7 +339,8 @@ void watch(QFuture<T> future,
 		   const QObject* owner,
 		   const QObject* contextObject,
            Finished finished,
-           Canceled canceled) {
+           Canceled canceled,
+           std::function<void (int)> progress = nullptr) {
 
     Q_ASSERT(owner);
 	QPointer<const QObject> ownerAlive = owner;
@@ -390,6 +391,13 @@ void watch(QFuture<T> future,
             canceled();
         });
 
+        if(progress) {
+            QObject::connect(watcher, &QFutureWatcher<T>::progressValueChanged,
+                             contextObject, [=](int value) {
+                progress(value);
+            });
+        }
+
     } else {
         QObject::connect(watcher, &QFutureWatcher<T>::finished,
                          [=]() {
@@ -412,6 +420,14 @@ void watch(QFuture<T> future,
             }
             canceled();
         });
+
+
+        if(progress) {
+            QObject::connect(watcher, &QFutureWatcher<T>::progressValueChanged,
+                             [=](int value) {
+                progress(value);
+            });
+        }
     }
 
     if ((QThread::currentThread() != QCoreApplication::instance()->thread()) &&
@@ -733,10 +749,12 @@ protected:
 
 class CombinedFuture: public DeferredFuture<void> {
 public:
-    CombinedFuture(bool settleAllModeArg = false) : DeferredFuture<void>(), settleAllMode(settleAllModeArg) {
-        settledCount = 0;
-        count = 0;
-        anyCanceled = false;
+    CombinedFuture(bool settleAllModeArg = false) : DeferredFuture<void>(),
+        settledCount(0),
+        count(0),
+        anyCanceled(false),
+        settleAllMode(settleAllModeArg)
+    {
     }
 
     template <typename T>
@@ -749,17 +767,36 @@ public:
 
         mutex.lock();
         int index = count++;
-        QFutureInterface<void>::setProgressRange(0, count);
+        bool trackProgress = future.progressMaximum() > 0;
+
+        std::function<void (int)> progressFunc;
+        int progressIncrement = 1;
+        if(trackProgress) {
+            auto currentProgress = QSharedPointer<int>::create(0);
+            progressFunc = [=](int progress) {
+                mutex.lock();
+                int diff = progress - *currentProgress;
+                *currentProgress = progress;
+                QFutureInterface<void>::setProgressValue(progressValue() + diff);
+                mutex.unlock();
+            };
+            progressIncrement = future.progressMaximum();
+        }
+
+        QFutureInterface<void>::setProgressRange(0, progressMaximum() + progressIncrement);
         mutex.unlock();
+
 
         Private::watch(future, this, 0,
                        [=]() {
-            completeFutureAt(index);
+            completeFutureAt(index, trackProgress);
             decWeakRefCount();
         },[=]() {
-            cancelFutureAt(index);
+            cancelFutureAt(index, trackProgress);
             decWeakRefCount();
-        });
+        },
+        progressFunc
+        );
     }
 
     static QSharedPointer<CombinedFuture> create(bool settleAllMode) {
@@ -782,22 +819,22 @@ private:
     bool anyCanceled;
     bool settleAllMode;
 
-    void completeFutureAt(int index) {
+    void completeFutureAt(int index, bool trackProgress) {
         Q_UNUSED(index);
         mutex.lock();
         settledCount++;
-        QFutureInterface<void>::setProgressValue(settledCount);
+        updateProgress(trackProgress);
         mutex.unlock();
         checkFulfilled();
     }
 
-    void cancelFutureAt(int index) {
+    void cancelFutureAt(int index, bool trackProgress) {
         Q_UNUSED(index);
 
         mutex.lock();
         settledCount++;
         anyCanceled = true;
-        QFutureInterface<void>::setProgressValue(settledCount);
+        updateProgress(trackProgress);
         mutex.unlock();
 
         checkFulfilled();
@@ -819,6 +856,12 @@ private:
             } else {
                 complete();
             }
+        }
+    }
+
+    void updateProgress(bool trackProgress) {
+        if(!trackProgress) {
+            QFutureInterface<void>::setProgressValue(progressValue() + 1);
         }
     }
 
