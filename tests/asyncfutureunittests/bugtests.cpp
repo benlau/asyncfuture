@@ -317,5 +317,56 @@ void BugTests::test_chained_obserable_progress()
 
     QCOMPARE(nextExecuted2, true);
     QCOMPARE(nextFuture2.progressValue(), ints.size() * 3);
+}
 
+void BugTests::test_forward_canceled() {
+    QVector<int> ints(100);
+    std::iota(ints.begin(), ints.end(), ints.size());
+    std::function<int (int)> func = [](int x)->int {
+        QThread::msleep(100);
+        return x * x;
+    };
+    QFuture<int> mappedFuture = QtConcurrent::mapped(ints, func);
+
+    bool completed1 = false;
+    bool canceled1 = false;
+    AsyncFuture::observe(mappedFuture).subscribe(
+                [&completed1]{ completed1 = true; },
+    [&canceled1]{ canceled1 = true; }
+    );
+
+    bool started = false;
+    bool completed2 = false;
+    bool canceled2 = false;
+    bool nextFutureCanceled = false;
+
+    auto nextFuture = AsyncFuture::observe(mappedFuture).subscribe([ints, func, &completed2, &canceled2, &started](){
+        started = true;
+        QFuture<int> mappedFuture2 = QtConcurrent::mapped(ints, func);
+
+        AsyncFuture::observe(mappedFuture2).subscribe(
+                    [&completed2]{ completed2 = true; },
+        [&canceled2]{ canceled2 = true; }
+        );
+
+        return mappedFuture2;
+    },
+    [&nextFutureCanceled]() {
+        nextFutureCanceled = true;
+    }
+
+    ).future();
+
+    observe(timeout(50)).subscribe([&nextFuture](){
+        nextFuture.cancel();
+    });
+
+    await(nextFuture);
+
+    QCOMPARE(completed1, false);
+    QCOMPARE(completed2, false);
+    QCOMPARE(started, false);
+    QCOMPARE(nextFutureCanceled, true);
+    QCOMPARE(canceled1, true);
+    QCOMPARE(canceled2, false); //This was never started, so it can't be cancelled
 }

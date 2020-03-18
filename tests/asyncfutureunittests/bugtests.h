@@ -28,6 +28,8 @@ private slots:
     void test_combiner_handle_nested_progress();
     void test_combiner_combiner_handle_nested_progress();
     void test_chained_obserable_progress();
+
+    void test_forward_canceled();
 };
 
 #endif // BUGTESTS_H

@@ -334,14 +334,14 @@ void runInMainThread(F func) {
  * @param contextObject Determine the receiver callback
  */
 
-template <typename T, typename Finished, typename Canceled>
+template <typename T, typename Finished, typename Canceled, typename Progress, typename ProgressRange>
 void watch(QFuture<T> future,
 		   const QObject* owner,
 		   const QObject* contextObject,
            Finished finished,
            Canceled canceled,
-           std::function<void (int value)> progress = nullptr,
-           std::function<void (int min, int max)> progressRange = nullptr) {
+           Progress progress,
+           ProgressRange progressRange) {
 
     Q_ASSERT(owner);
 	QPointer<const QObject> ownerAlive = owner;
@@ -392,19 +392,17 @@ void watch(QFuture<T> future,
             canceled();
         });
 
-        if(progress) {
-            QObject::connect(watcher, &QFutureWatcher<T>::progressValueChanged,
-                             contextObject, [=](int value) {
-                progress(value);
-            });
-        }
 
-        if(progressRange) {
-            QObject::connect(watcher, &QFutureWatcher<T>::progressRangeChanged,
-                             contextObject, [=](int min, int max) {
-                progressRange(min, max);
-            });
-        }
+        QObject::connect(watcher, &QFutureWatcher<T>::progressValueChanged,
+                         contextObject, [=](int value) {
+            progress(value);
+        });
+
+        QObject::connect(watcher, &QFutureWatcher<T>::progressRangeChanged,
+                         contextObject, [=](int min, int max) {
+            progressRange(min, max);
+        });
+
 
     } else {
         QObject::connect(watcher, &QFutureWatcher<T>::finished,
@@ -430,19 +428,16 @@ void watch(QFuture<T> future,
         });
 
 
-        if(progress) {
-            QObject::connect(watcher, &QFutureWatcher<T>::progressValueChanged,
-                             [=](int value) {
-                progress(value);
-            });
-        }
+        QObject::connect(watcher, &QFutureWatcher<T>::progressValueChanged,
+                         [=](int value) {
+            progress(value);
+        });
 
-        if(progressRange) {
-            QObject::connect(watcher, &QFutureWatcher<T>::progressRangeChanged,
-                             [=](int min, int max) {
-                progressRange(min, max);
-            });
-        }
+        QObject::connect(watcher, &QFutureWatcher<T>::progressRangeChanged,
+                         [=](int min, int max) {
+            progressRange(min, max);
+        });
+
     }
 
     if ((QThread::currentThread() != QCoreApplication::instance()->thread()) &&
@@ -581,7 +576,10 @@ public:
               this,
               nullptr,
               onFinished,
-              onCanceled);
+              onCanceled,
+              [](int){},
+        [](int,int){}
+        );
 
         track(future);
     }
@@ -604,7 +602,9 @@ public:
               this,
               nullptr,
               onFinished,
-              onCanceled);
+              onCanceled,
+              [](int){},
+        [](int,int){});
         // It don't track for the first level of future
     }
 
@@ -642,7 +642,10 @@ public:
               this,
               nullptr,
               onFinished,
-              onCanceled);
+              onCanceled,
+              [](int){},
+              [](int,int){}
+        );
     }
 
     void incWeakRefCount() {
@@ -734,6 +737,11 @@ public:
         parentProgress.max = max;
         updateProgressRanges();
         mutex.unlock();
+    }
+
+    void setParent(QFuture<void> future) {
+        setParentProgressValue(future.progressValue());
+        setParentProgressRange(future.progressMinimum(), future.progressMaximum());
     }
 
 protected:
@@ -860,7 +868,8 @@ public:
             cancelFutureAt(index, trackProgress);
             decWeakRefCount();
         },
-        progressFunc
+        progressFunc,
+        [](int,int){}
         );
     }
 
@@ -1140,7 +1149,6 @@ static QFuture<DeferredType> execute(QFuture<T> future, const QObject* contextOb
 
     auto defer = DeferredFuture<DeferredType>::create();
 
-//    qDebug() << "Future:" << future.progressMaximum();
     defer->setParentProgressValue(future.progressValue());
     defer->setParentProgressRange(future.progressMinimum(), future.progressMaximum());
 
@@ -1169,6 +1177,18 @@ static QFuture<DeferredType> execute(QFuture<T> future, const QObject* contextOb
     if (contextObject) {
         defer->cancel(contextObject, &QObject::destroyed);
     }
+
+
+    //Watch the defer future and propgate changes up to the parent future
+    auto futurePtr = QSharedPointer<QFuture<void>>::create(future);
+    watch(defer->future(),
+          contextObject,
+          contextObject,
+          []() {}, //onComplete
+          [futurePtr]() { futurePtr->cancel(); },
+          [](int){},
+          [](int,int){}
+        );
 
     return defer->future();
 }
