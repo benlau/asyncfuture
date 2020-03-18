@@ -370,3 +370,79 @@ void BugTests::test_forward_canceled() {
     QCOMPARE(canceled1, true);
     QCOMPARE(canceled2, false); //This was never started, so it can't be cancelled
 }
+
+void BugTests::test_issue4_cancel() {
+
+    class System {
+    public:
+        double scale = 2.0;
+    };
+
+    class Worker {
+    public:
+        Worker(const System& system) :
+            system(system)
+        {
+
+        }
+
+        double operator()(QPointF point) const {
+            QThread::msleep(100);
+            auto scaledPoint = point * system.scale;
+            return scaledPoint.manhattanLength();
+        }
+
+    private:
+        System system;
+    };
+
+
+    auto getSystem = []() {
+        return observe(timeout(50)).subscribe([](){ return System(); }).future();
+    };
+
+    QAtomicInt mapCount = 0;
+
+    auto compute = [getSystem, &mapCount](QVector<QPointF> coords)->QFuture<double> const
+    {
+        QFuture<System> sys = getSystem();
+        auto f = [=, &mapCount](System&& system)->QFuture<double>
+        {
+            Worker worker(system);
+            std::function<double (QPointF point)> func = [worker, &mapCount](QPointF point)->double {
+                mapCount++;
+                return worker(point);
+            };
+            return QtConcurrent::mapped(coords, func);
+        };
+
+        auto rv = AsyncFuture::observe(sys).subscribe(f);
+        return rv.future();
+    };
+
+    auto points = QVector<QPointF>({
+                                       QPointF(1.0, 2.0),
+                                       QPointF(1.0, 3.0),
+                                       QPointF(1.0, 4.0),
+                                       QPointF(1.0, 5.0),
+                                       QPointF(1.0, 6.0)
+                                   });
+
+    while(points.size() < QThread::idealThreadCount() * 2) {
+        points += points;
+    }
+
+    auto userFuture = compute(points);
+
+    auto timeoutFuture = observe(timeout(100)).subscribe(
+                [&userFuture](){
+        userFuture.cancel(); }
+    ).future();
+
+    auto c = combine() << userFuture << timeoutFuture;
+    await(c.future());
+
+    QVERIFY(mapCount < points.size() - 1);
+}
+
+

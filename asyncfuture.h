@@ -842,7 +842,7 @@ public:
         int index = count++;
         bool trackProgress = future.progressMaximum() > 0;
 
-        std::function<void (int)> progressFunc;
+        std::function<void (int)> progressFunc = [](int){};
         int progressIncrement = 1;
         if(trackProgress) {
             auto currentProgress = QSharedPointer<int>::create(0);

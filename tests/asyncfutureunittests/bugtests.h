@@ -11,8 +11,6 @@ public:
 
 signals:
 
-public slots:
-
 private slots:
     void test_nested_context();
 
@@ -30,6 +28,7 @@ private slots:
     void test_chained_obserable_progress();
 
     void test_forward_canceled();
+    void test_issue4_cancel();
 };
 
 #endif // BUGTESTS_H
