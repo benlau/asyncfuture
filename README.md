@@ -329,7 +329,6 @@ Observable<int> observable1 = AsyncFuture::observe(future);
 // or
 auto observable2 = AsyncFuture::observe(future); 
 ```
-
 **QFuture&lt;T&gt; Observable&lt;T&gt;::future()**
 
 Obtain the QFuture object to represent the result.
@@ -437,11 +436,41 @@ AsyncFuture::observe(future).onProgress([=]() -> bool {
 AsyncFuture::observe(future).onProgress([=]() -> void {
     qDebug() << future.progressValue();
 });
-
 ```
 
 Added since v0.3.6.4
 
+**Chained Progress**
+
+`observe().subscribe().future()` future will report progress accordingly to the underlying future chain. When watching the final future in the chain, `progressRangeChanged` may be be updated multiple times as futures in the chain update their individual `progressRangeChanged`. When visualizing final future's progress in a progress bar, progressValue may appear to go in reverse, as progressRange increases. `progressValueChanged` will never go down as execution continues. 
+
+Example:
+
+```{c++}
+    QVector<int> ints(100);
+    std::iota(ints.begin(), ints.end(), ints.size()); // Make ints from 1 to 100, increament by 1
+    
+    // Worker function
+    std::function<int (int)> func = [](int x)->int {
+        QThread::msleep(100);
+        return x * x;
+    };
+    
+    //First execution of workers
+    //Will increase the progressRange to 100
+    QFuture<int> mappedFuture = QtConcurrent::mapped(ints, func);
+
+    auto nextFuture = AsyncFuture::observe(mappedFuture).subscribe([ints, func](){
+        //Execute another batch of workers
+        //Will increase the progressRange to 200
+        QFuture<int> mappedFuture2 = QtConcurrent::mapped(ints, func);
+        return mappedFuture2;
+    }).future();
+
+    AsyncFuture::observe(nextFuture).onProgress([nextFuture](){
+        //Report the progress for the sum of mappedFuture and nextFuture from 0 to 200.
+    });
+```
 
 Deferred&lt;T&gt;
 -----------
@@ -449,6 +478,8 @@ Deferred&lt;T&gt;
 The `deferred<T>()` function return a Deferred<T> object that allows you to manipulate a QFuture manually. The future() function return a running QFuture<T>. You have to call Deferred.complete() / Deferred.cancel() to trigger the status changes.
 
 The usage of complete/cancel in a Deferred object is pretty similar to the resolve/reject in a Promise object. You could complete a future by calling complete with a result value. If you give it another future, then it will observe the input future and change status once that is finished.
+
+`deffered<T>()` that are created and immediately completed it's recommend to use `completed<T>()` instead. 
 
 **Auto Cancellation**
 
@@ -609,6 +640,32 @@ auto f2 = observe(f1).subscribe([=]() {
 observe(f2).subscribe([=]() {
   // it won't be executed.
 });
+```
+
+Cancelling the future at the end of the chain will cancel the whole chain. This will cancel all `QtConcurrent` execution. Worker threads that have already been started by `QtConcurrent` will continue running until finished, but no new ones will be started (this is how `QtConcurrent` works). 
+
+Example: 
+
+```c++
+    QVector<int> ints(100);
+    std::iota(ints.begin(), ints.end(), ints.size());
+    std::function<int (int)> func = [](int x)->int {
+        QThread::msleep(100);
+        return x * x;
+    };
+    
+    QFuture<int> mappedFuture = QtConcurrent::mapped(ints, func);
+
+    auto future = AsyncFuture::observe(mappedFuture).subscribe(
+                []{ 
+                   // it won't be executed
+                },
+                []{ 
+                    // it will be executed.
+                }
+    ).future();
+    
+    future.cancel(); //Will cancel mappedFuture and future 
 ```
 
 Future Object Tracking
