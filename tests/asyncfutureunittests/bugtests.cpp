@@ -273,7 +273,7 @@ void BugTests::test_combiner_combiner_handle_nested_progress()
 
     int progress = -1;
     AsyncFuture::observe(combineFuture).onProgress([&progress, combineFuture](){
-        QVERIFY(progress < combineFuture.progressValue());
+        QVERIFY(progress <= combineFuture.progressValue());
         progress = combineFuture.progressValue();
     });
 

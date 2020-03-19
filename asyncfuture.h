@@ -843,8 +843,12 @@ public:
         bool trackProgress = future.progressMaximum() > 0;
 
         std::function<void (int)> progressFunc = [](int){};
-        int progressIncrement = 1;
+        std::function<void (int, int)> progressRangeFunc = [](int,int){};
+
+        auto progressIncrement = QSharedPointer<int>::create(1);
         if(trackProgress) {
+            *progressIncrement = future.progressMaximum();
+
             auto currentProgress = QSharedPointer<int>::create(0);
             progressFunc = [=](int progress) {
                 mutex.lock();
@@ -853,12 +857,19 @@ public:
                 QFutureInterface<void>::setProgressValue(progressValue() + diff);
                 mutex.unlock();
             };
-            progressIncrement = future.progressMaximum();
+
+            progressRangeFunc = [=](int min, int max) {
+                Q_UNUSED(min);
+                mutex.lock();
+                int diff = max - *progressIncrement;
+                *progressIncrement = max;
+                QFutureInterface<void>::setProgressRange(0, progressMaximum() + diff);
+                mutex.unlock();
+            };
         }
 
-        QFutureInterface<void>::setProgressRange(0, progressMaximum() + progressIncrement);
+        QFutureInterface<void>::setProgressRange(0, progressMaximum() + *progressIncrement);
         mutex.unlock();
-
 
         Private::watch(future, this, 0,
                        [=]() {
@@ -869,7 +880,7 @@ public:
             decWeakRefCount();
         },
         progressFunc,
-        [](int,int){}
+        progressRangeFunc
         );
     }
 
@@ -1669,6 +1680,7 @@ inline QFuture<void> completed() {
 template <typename T>
 QFuture<T> completed(const T &val) {
    QFutureInterface<T> fi;
+   fi.setProgressRange(0, 1);
    fi.reportFinished(&val);
    return QFuture<T>(&fi);
 }
@@ -1676,10 +1688,9 @@ QFuture<T> completed(const T &val) {
 template <typename T>
 QFuture<T> completed(const QList<T> &val) {
     QFutureInterface<T> fi;
+    fi.setProgressRange(0, val.size());
     fi.reportResults(val.toVector());
     fi.reportFinished();
     return QFuture<T>(&fi);
 }
-
-
 }

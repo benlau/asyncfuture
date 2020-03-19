@@ -1974,6 +1974,20 @@ void Spec::test_completed() {
         QCOMPARE(f.isFinished(), true);
         QCOMPARE(f.isCanceled(), false);
         QCOMPARE(f.result(), 5);
+        QCOMPARE(f.progressValue(), 1);
+        QCOMPARE(f.progressMinimum(), 0);
+        QCOMPARE(f.progressMaximum(), 1);
+    }
+    {
+        QList<int> completeData = {1,2,3,4,5};
+        auto f = AsyncFuture::completed(completeData);
+        QCOMPARE(f.isRunning(), false);
+        QCOMPARE(f.isFinished(), true);
+        QCOMPARE(f.isCanceled(), false);
+        QCOMPARE(f.results(), completeData);
+        QCOMPARE(f.progressValue(), 5);
+        QCOMPARE(f.progressMinimum(), 0);
+        QCOMPARE(f.progressMaximum(), completeData.size());
     }
 }
 
