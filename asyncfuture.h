@@ -1596,6 +1596,14 @@ public:
     }
 
     template <typename T>
+    Combinator& operator<<(QList<QFuture<T>> futures) {
+        for(auto future : futures) {
+            combinedFuture->addFuture(future);
+        }
+        return *this;
+    }
+
+    template <typename T>
     Combinator& operator<<(Deferred<T> deferred) {
         combinedFuture->addFuture(deferred.future());
         return *this;
