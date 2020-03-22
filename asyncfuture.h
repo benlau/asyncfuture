@@ -831,6 +831,12 @@ public:
     {
     }
 
+    ~CombinedFuture() {
+        for(auto progress : progresses) {
+            delete progress;
+        }
+    }
+
     template <typename T>
     void addFuture(const QFuture<T> future) {
         if (isFinished()) {
@@ -841,47 +847,43 @@ public:
 
         mutex.lock();
         int index = count++;
-        bool trackProgress = future.progressMaximum() > 0;
 
-        std::function<void (int)> progressFunc = [](int){};
-        std::function<void (int, int)> progressRangeFunc = [](int,int){};
 
-        auto progressIncrement = QSharedPointer<int>::create(1);
-        if(trackProgress) {
-            *progressIncrement = future.progressMaximum();
+        auto progress = new ProgressInfo;
+        progresses.append(progress);
+        Q_ASSERT(index == progresses.size() - 1);
 
-            auto currentProgress = QSharedPointer<int>::create(0);
-            progressFunc = [=](int progress) {
-                mutex.lock();
-                int diff = progress - *currentProgress;
-                if(diff != 0) {
-                    *currentProgress = progress;
-                    QFutureInterface<void>::setProgressValue(progressValue() + diff);
-                }
-                mutex.unlock();
-            };
-
-            progressRangeFunc = [=](int min, int max) {
-                Q_UNUSED(min);
-                mutex.lock();
-                int diff = max - *progressIncrement;
-                if(diff != 0) {
-                    *progressIncrement = max;
-                    QFutureInterface<void>::setProgressRange(0, progressMaximum() + diff);
-                }
-                mutex.unlock();
-            };
+        if(future.progressMaximum() > 0) {
+            progress->max = future.progressMaximum();
         }
+        progress->value = future.progressValue();
 
-        QFutureInterface<void>::setProgressRange(0, progressMaximum() + *progressIncrement);
+        auto progressFunc = [=](int progressValue) {
+            mutex.lock();
+            progress->value = progressValue;
+            updateProgress();
+            mutex.unlock();
+        };
+
+        auto progressRangeFunc = [=](int min, int max) {
+            Q_UNUSED(min);
+            mutex.lock();
+            if(max > 0) {
+                progress->max = max;
+            }
+            updateProgressRange();
+            mutex.unlock();
+        };
+
+        QFutureInterface<void>::setProgressRange(0, progressMaximum() + progress->max);
         mutex.unlock();
 
         Private::watch(future, this, 0,
                        [=]() {
-            completeFutureAt(index, trackProgress);
+            completeFutureAt(index);
             decWeakRefCount();
         },[=]() {
-            cancelFutureAt(index, trackProgress);
+            cancelFutureAt(index);
             decWeakRefCount();
         },
         progressFunc,
@@ -904,27 +906,34 @@ public:
     }
 
 private:
+    class ProgressInfo {
+    public:
+        int max = 1;
+        int value = 0;
+    };
+
     int settledCount;
     int count;
     bool anyCanceled;
     bool settleAllMode;
+    QVector<ProgressInfo*> progresses;
 
-    void completeFutureAt(int index, bool trackProgress) {
+    void completeFutureAt(int index) {
         Q_UNUSED(index);
         mutex.lock();
         settledCount++;
-        updateProgress(trackProgress);
+        finishProgress(index);
         mutex.unlock();
         checkFulfilled();
     }
 
-    void cancelFutureAt(int index, bool trackProgress) {
+    void cancelFutureAt(int index) {
         Q_UNUSED(index);
 
         mutex.lock();
         settledCount++;
         anyCanceled = true;
-        updateProgress(trackProgress);
+        finishProgress(index);
         mutex.unlock();
 
         checkFulfilled();
@@ -949,10 +958,33 @@ private:
         }
     }
 
-    void updateProgress(bool trackProgress) {
-        if(!trackProgress) {
-            QFutureInterface<void>::setProgressValue(progressValue() + 1);
-        }
+    void updateProgressRange() {
+        int max = std::accumulate(progresses.begin(),
+                                  progresses.end(),
+                                  0,
+                                  [](int current, const ProgressInfo* info)
+        {
+            return info->max + current;
+        });
+
+        QFutureInterface<void>::setProgressRange(0, max);
+    }
+
+    void updateProgress() {
+        int value = std::accumulate(progresses.begin(),
+                                  progresses.end(),
+                                  0,
+                                  [](int current, const ProgressInfo* info)
+        {
+            return info->value + current;
+        });
+
+        QFutureInterface<void>::setProgressValue(value);
+    }
+
+    void finishProgress(int index) {
+        progresses[index]->value = progresses[index]->max;
+        updateProgress();
     }
 
 };
