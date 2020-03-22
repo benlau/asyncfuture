@@ -739,11 +739,6 @@ public:
         mutex.unlock();
     }
 
-    void setParent(QFuture<void> future) {
-        setParentProgressValue(future.progressValue());
-        setParentProgressRange(future.progressMinimum(), future.progressMaximum());
-    }
-
 protected:
     DeferredFuture(QObject* parent = nullptr): QObject(parent),
                                          QFutureInterface<T>(QFutureInterface<T>::Running),
@@ -790,11 +785,17 @@ private:
     }
 
     void updateProgressRanges() {
-        QFutureInterface<T>::setProgressRange(0, parentProgress.range() + watchProgress.range());
+        int newMax = parentProgress.range() + watchProgress.range();
+        if(QFutureInterface<T>::progressMaximum() != newMax) {
+            QFutureInterface<T>::setProgressRange(0, newMax);
+        }
     }
 
     void updateProgressValue() {
-        QFutureInterface<T>::setProgressValue(parentProgress.value + watchProgress.value);
+        int newProgress = parentProgress.value + watchProgress.value;
+        if(QFutureInterface<T>::progressValue() != newProgress) {
+            QFutureInterface<T>::setProgressValue(newProgress);
+        }
     }
 
     /// The future is already finished. It will take effect immediately
@@ -853,8 +854,10 @@ public:
             progressFunc = [=](int progress) {
                 mutex.lock();
                 int diff = progress - *currentProgress;
-                *currentProgress = progress;
-                QFutureInterface<void>::setProgressValue(progressValue() + diff);
+                if(diff != 0) {
+                    *currentProgress = progress;
+                    QFutureInterface<void>::setProgressValue(progressValue() + diff);
+                }
                 mutex.unlock();
             };
 
@@ -862,8 +865,10 @@ public:
                 Q_UNUSED(min);
                 mutex.lock();
                 int diff = max - *progressIncrement;
-                *progressIncrement = max;
-                QFutureInterface<void>::setProgressRange(0, progressMaximum() + diff);
+                if(diff != 0) {
+                    *progressIncrement = max;
+                    QFutureInterface<void>::setProgressRange(0, progressMaximum() + diff);
+                }
                 mutex.unlock();
             };
         }
