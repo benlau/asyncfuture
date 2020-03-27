@@ -445,4 +445,55 @@ void BugTests::test_issue4_cancel() {
     QVERIFY(mapCount < points.size() - 1);
 }
 
+void BugTests::test_combine_forward_cancel() {
+
+    QAtomicInt runCount = 0;
+    const int count = 100;
+
+    QThreadPool::globalInstance()->setMaxThreadCount(2);
+
+    auto createMappedFuture = [&runCount, count]() {
+        QVector<int> ints(count);
+        std::iota(ints.begin(), ints.end(), ints.size());
+        std::function<int (int)> func = [&runCount](int x)->int {
+            QThread::msleep(10);
+            runCount++;
+            return x * x;
+        };
+        QFuture<int> mappedFuture = QtConcurrent::mapped(ints, func);
+        return mappedFuture;
+    };
+
+    QList<QFuture<int>> futures;
+
+    for(int i = 0; i < 4; i++) {
+        futures.append(createMappedFuture());
+    }
+
+    auto c = combine();
+    c << futures;
+
+    auto combineFuture = c.future();
+
+    observe(combineFuture).onProgress([&combineFuture](){
+        //Cancel after startup
+        combineFuture.cancel();
+    });
+
+    await(combineFuture);
+    QThreadPool::globalInstance()->waitForDone();
+
+    //All the sub futures should be canceled
+    for(auto future : futures) {
+        QVERIFY(future.isCanceled());
+    }
+
+    //Make sure the sub futures didn't run all the way through
+    double fullNumberOfRuns = futures.size() * count;
+    double ratio = runCount / fullNumberOfRuns;
+    QVERIFY(ratio < 0.1);
+
+    QThreadPool::globalInstance()->setMaxThreadCount(QThread::idealThreadCount());
+}
+
 

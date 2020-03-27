@@ -822,6 +822,7 @@ protected:
 };
 
 class CombinedFuture: public DeferredFuture<void> {
+
 public:
     CombinedFuture(bool settleAllModeArg = false) : DeferredFuture<void>(),
         settledCount(0),
@@ -829,10 +830,26 @@ public:
         anyCanceled(false),
         settleAllMode(settleAllModeArg)
     {
+        //Cancel all sub futures if this future is cancelled
+        Private::watch(
+                    future(),
+                    this,
+                    this,
+                    [](){},
+        [this](){
+            mutex.lock();
+            for(FutureInfo* info : futures) {
+                info->childFuture.cancel();
+            }
+            mutex.unlock();
+        },
+        [](int){},
+        [](int, int){}
+        );
     }
 
     ~CombinedFuture() {
-        for(auto progress : progresses) {
+        for(auto progress : futures) {
             delete progress;
         }
     }
@@ -849,18 +866,18 @@ public:
         int index = count++;
 
 
-        auto progress = new ProgressInfo;
-        progresses.append(progress);
-        Q_ASSERT(index == progresses.size() - 1);
+        auto info = new FutureInfo(future);
+        futures.append(info);
+        Q_ASSERT(index == futures.size() - 1);
 
         if(future.progressMaximum() > 0) {
-            progress->max = future.progressMaximum();
+            info->max = future.progressMaximum();
         }
-        progress->value = future.progressValue();
+        info->value = future.progressValue();
 
         auto progressFunc = [=](int progressValue) {
             mutex.lock();
-            progress->value = progressValue;
+            info->value = progressValue;
             updateProgress();
             mutex.unlock();
         };
@@ -869,13 +886,13 @@ public:
             Q_UNUSED(min);
             mutex.lock();
             if(max > 0) {
-                progress->max = max;
+                info->max = max;
             }
             updateProgressRange();
             mutex.unlock();
         };
 
-        QFutureInterface<void>::setProgressRange(0, progressMaximum() + progress->max);
+        QFutureInterface<void>::setProgressRange(0, progressMaximum() + info->max);
         mutex.unlock();
 
         Private::watch(future, this, 0,
@@ -906,17 +923,23 @@ public:
     }
 
 private:
-    class ProgressInfo {
+    class FutureInfo {
     public:
+        FutureInfo() = default;
+        FutureInfo(QFuture<void> childFuture) :
+            childFuture(childFuture)
+        {}
+
         int max = 1;
         int value = 0;
+        QFuture<void> childFuture;
     };
 
     int settledCount;
     int count;
     bool anyCanceled;
     bool settleAllMode;
-    QVector<ProgressInfo*> progresses;
+    QVector<FutureInfo*> futures;
 
     void completeFutureAt(int index) {
         Q_UNUSED(index);
@@ -959,10 +982,10 @@ private:
     }
 
     void updateProgressRange() {
-        int max = std::accumulate(progresses.begin(),
-                                  progresses.end(),
+        int max = std::accumulate(futures.begin(),
+                                  futures.end(),
                                   0,
-                                  [](int current, const ProgressInfo* info)
+                                  [](int current, const FutureInfo* info)
         {
             return info->max + current;
         });
@@ -971,10 +994,10 @@ private:
     }
 
     void updateProgress() {
-        int value = std::accumulate(progresses.begin(),
-                                  progresses.end(),
+        int value = std::accumulate(futures.begin(),
+                                  futures.end(),
                                   0,
-                                  [](int current, const ProgressInfo* info)
+                                  [](int current, const FutureInfo* info)
         {
             return info->value + current;
         });
@@ -983,7 +1006,7 @@ private:
     }
 
     void finishProgress(int index) {
-        progresses[index]->value = progresses[index]->max;
+        futures[index]->value = futures[index]->max;
         updateProgress();
     }
 

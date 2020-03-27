@@ -29,6 +29,7 @@ private slots:
 
     void test_forward_canceled();
     void test_issue4_cancel();
+    void test_combine_forward_cancel();
 };
 
 #endif // BUGTESTS_H
