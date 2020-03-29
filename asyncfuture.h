@@ -1756,8 +1756,10 @@ QFuture<T> completed(const T &val) {
 template <typename T>
 QFuture<T> completed(const QList<T> &val) {
     QFutureInterface<T> fi;
-    fi.setProgressRange(0, val.size());
-    fi.reportResults(val.toVector());
+    if(!val.isEmpty()) {
+        fi.setProgressRange(0, val.size());
+        fi.reportResults(val.toVector());
+    }
     fi.reportFinished();
     return QFuture<T>(&fi);
 }

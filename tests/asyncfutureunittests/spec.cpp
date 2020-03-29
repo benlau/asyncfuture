@@ -1989,6 +1989,20 @@ void Spec::test_completed() {
         QCOMPARE(f.progressMinimum(), 0);
         QCOMPARE(f.progressMaximum(), completeData.size());
     }
+
+    {
+        QList<int> emptyList;
+        auto f = completed(emptyList);
+        QCOMPARE(f.isRunning(), false);
+        QCOMPARE(f.isFinished(), true);
+        QCOMPARE(f.isCanceled(), false);
+        QCOMPARE(f.resultCount(), 0);
+        QCOMPARE(f.results(), emptyList);
+        QCOMPARE(f.progressValue(), 0);
+        QCOMPARE(f.progressMinimum(), 0);
+        QCOMPARE(f.progressMaximum(), emptyList.size());
+
+    }
 }
 
 
