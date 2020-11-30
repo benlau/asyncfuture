@@ -839,7 +839,9 @@ public:
         [this](){
             mutex.lock();
             for(FutureInfo* info : futures) {
-                info->childFuture.cancel();
+                if(info->childFuture.isRunning() && !info->childFuture.isFinished()) {
+                    info->childFuture.cancel();
+                }
             }
             mutex.unlock();
         },

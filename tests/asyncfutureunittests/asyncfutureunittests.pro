@@ -42,6 +42,6 @@ HEADERS += \
     spec.h \
     tools.h
 
-!win32 {
-    QMAKE_CXXFLAGS += -Werror
-}
+#!win32 {
+#    QMAKE_CXXFLAGS += -Werror
+#}

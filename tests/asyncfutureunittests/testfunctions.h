@@ -48,7 +48,7 @@ namespace Test {
 
     template <typename F>
     bool waitUntil(F f, int timeout = -1) {
-        QTime time;
+        QElapsedTimer time;
         time.start();
 
         while (!f()) {
