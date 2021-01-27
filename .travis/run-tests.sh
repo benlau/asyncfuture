@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 export DISPLAY=:99.0
 export QT_QPA_PLATFORM=minimal
@@ -9,7 +9,7 @@ set -e
 ulimit -c unlimited 
 ulimit -a
 
-pushd tests/asyncfutureunittests/
+pushd tests/asyncfutureunittests
 qmake asyncfutureunittests.pro
 make
 ./asyncfutureunittests
