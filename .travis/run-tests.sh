@@ -6,12 +6,8 @@ export QT_QPA_PLATFORM=minimal
 set -v
 set -e
 
-qpm check
-VERSION=$(jq .version.label qpm.json)
-VERSION=$(eval echo $VERSION)
 ulimit -c unlimited 
 ulimit -a
-if ! head -n 1 asyncfuture.h | grep -q $VERSION; then echo "Version string mismatched"; exit -1 ;fi
 
 pushd tests/asyncfutureunittests/
 qmake asyncfutureunittests.pro
