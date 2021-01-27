@@ -1,8 +1,8 @@
 language : cpp
-dist: trusty
-env:
-  - QT_VERSION="5.7.1" TARGET_PACKAGE="qt.57.gcc_64"
-  - QT_VERSION="5.10.1" TARGET_PACKAGE="qt.qt5.5101.gcc_64"
+dist: bionic
+services:
+  - docker
+  - xvfb
 addons:
   apt:
     packages:
@@ -11,29 +11,15 @@ addons:
 compiler:
   - gcc
 before_install:
+    - export PATH=$PWD/.travis:$PATH
+    - export DISPLAY=:99.0
+    - docker pull benlau/qtsdk:5.9.9
     - export GOPATH=`pwd`/gosrc
     - export PATH=`pwd`/gosrc/bin:$PATH
-    - go get qpm.io/qpm
-    - sh -e /etc/init.d/xvfb start
+    - go get qpm.io/qpm  
 script:
-    - echo $TARGET_NAME
-    - qpm check
-    - VERSION=$(jq .version.label qpm.json)
-    - VERSION=$(eval echo $VERSION)
-    - ulimit -c unlimited 
-    - ulimit -a
-    - if ! head -n 1 asyncfuture.h | grep -q $VERSION; then echo "Version string mismatched"; exit -1 ;fi
-    - git clone https://github.com/benlau/qtci.git
-    - export QT_CI_PACKAGES=${TARGET_PACKAGE} 
-    - source qtci/path.env
-    - install-qt ${QT_VERSION} `pwd`/Qt
-    - ls
-    - ls Qt
-    - source Qt/qt-${QT_VERSION}.env
-    - mkdir build/
-    - cd build
-    - run-unittests ../tests/asyncfutureunittests/asyncfutureunittests.pro
-    - ls
-    - if test -f coredump; then gdb -ex "where \n ;  thread apply all bt" asyncfutureunittests coredump  ; fi
-    - valgrind --num-callers=30 --leak-check=full --track-origins=yes --gen-suppressions=all --error-exitcode=1 --suppressions=../tests/asyncfutureunittests/asyncfuture.supp ./asyncfutureunittests
-
+    - sleep 3
+    - pushd tests/asyncfutureunittests
+    - qpm install
+    - popd
+    - docker run --rm --network host -v "$PWD:/src" -t benlau/qtsdk:5.9.9 bash -c 'cd src && .travis/run-tests.sh'

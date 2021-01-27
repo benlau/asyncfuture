@@ -2,7 +2,7 @@ version: build{build}
 
 branches:
   except:
-    - project/travis
+    - develop/travis
 
 environment:
   matrix:
