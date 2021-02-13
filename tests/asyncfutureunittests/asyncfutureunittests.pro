@@ -18,6 +18,7 @@ SOURCES +=     main.cpp \
     bugtests.cpp \
     samplecode.cpp \
     cookbook.cpp \
+    testclass.cpp \
     trackingdata.cpp \
     spec.cpp
 
@@ -34,6 +35,7 @@ DISTFILES +=     qpm.json  \
 HEADERS += \
     FinishedAndCancelThread.h \
     example.h \
+    testclass.h \
     testfunctions.h \
     bugtests.h \
     samplecode.h \

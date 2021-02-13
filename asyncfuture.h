@@ -581,6 +581,21 @@ public:
         [](int,int){}
         );
 
+        auto pushCancel = [=]() {
+            auto tmpFuture = future;
+            tmpFuture.cancel();
+        };
+
+        //Pushes cancel to child futures in the chain
+        watch(this->future(),
+              this,
+              nullptr,
+              [](){},
+              pushCancel,
+              [](int){},
+        [](int,int){}
+        );
+
         track(future);
     }
 
@@ -1210,6 +1225,24 @@ eval(Functor functor, QFuture<T> future) {
     return call(functor, future);
 }
 
+template <typename Canceled>
+class CancelOnce {
+public:
+    CancelOnce(Canceled onCanceled) :
+        onCanceled(onCanceled)
+    {}
+
+    void cancel() {
+        if(!canceled) {
+            canceled = true;
+            onCanceled();
+        }
+    }
+
+    Canceled onCanceled;
+    bool canceled = false;
+};
+
 /// Create a DeferredFuture that will execute the callback functions when observed future finished
 /** DeferredType - The template type of the DeferredType
  *  RetType - The return type of QFuture
@@ -1225,6 +1258,8 @@ static QFuture<DeferredType> execute(QFuture<T> future, const QObject* contextOb
     defer->setParentProgressValue(future.progressValue());
     defer->setParentProgressRange(future.progressMinimum(), future.progressMaximum());
 
+    auto cancelOnce = std::make_shared<CancelOnce<Canceled>>(onCanceled);
+
     watch(future,
           contextObject,
           contextObject,[=]() {
@@ -1239,7 +1274,7 @@ static QFuture<DeferredType> execute(QFuture<T> future, const QObject* contextOb
             defer->cancel();
         }
     }, [=]() {
-        onCanceled();
+        cancelOnce->cancel();
         defer->cancel();
     }, [=](int progressValue) {
         defer->setParentProgressValue(progressValue);
@@ -1258,10 +1293,13 @@ static QFuture<DeferredType> execute(QFuture<T> future, const QObject* contextOb
           contextObject,
           contextObject,
           []() {}, //onComplete
-          [futurePtr]() { futurePtr->cancel(); },
-          [](int){},
-          [](int,int){}
-        );
+    [futurePtr, cancelOnce]() {
+        cancelOnce->cancel();
+        futurePtr->cancel();
+    },
+    [](int){},
+    [](int,int){}
+    );
 
     return defer->future();
 }

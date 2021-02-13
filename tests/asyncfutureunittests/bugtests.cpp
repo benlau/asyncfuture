@@ -8,6 +8,7 @@
 #include "testfunctions.h"
 #include "bugtests.h"
 #include "FinishedAndCancelThread.h"
+#include "testclass.h"
 
 using namespace AsyncFuture;
 using namespace Tools;
@@ -494,6 +495,55 @@ void BugTests::test_combine_forward_cancel() {
     QVERIFY(ratio < 0.1);
 
     QThreadPool::globalInstance()->setMaxThreadCount(QThread::idealThreadCount());
+}
+
+//This is to test https://github.com/benlau/asyncfuture/issues/37
+void BugTests::test_chained_cancel() {
+    TestClass testclass;
+    auto wasCancelled = AsyncFuture::deferred<bool>();
+    auto wasInnerCancelled = AsyncFuture::deferred<bool>();
+
+    QFuture<void> future = AsyncFuture::observe(&testclass, &TestClass::someTestSignal)
+            .subscribe(
+                [&wasInnerCancelled, &testclass, &future]()
+    {
+        auto innerFuture = AsyncFuture::observe(&testclass,
+                                    &TestClass::someOtherTestSignal).subscribe(
+                    [&wasInnerCancelled]() {
+            wasInnerCancelled.complete(false);
+        },
+        //Canceled inner
+        [&wasInnerCancelled]() {
+            //following deferred gets never called
+            wasInnerCancelled.complete(true);
+        }).future();
+
+        QTimer::singleShot(40, QCoreApplication::instance(), [&future]() {
+            future.cancel();
+        });
+
+        return innerFuture;
+    },
+    //Canceled Outer
+    [&wasCancelled]() {
+        wasCancelled.complete(true);
+    }
+    ).future();
+
+    testclass.emitSomeTestSignal();
+    await(future);
+    QVERIFY(future.isCanceled());
+    QVERIFY(future.isFinished());
+
+    //These should finish
+    await(wasInnerCancelled.future(), 100);
+    QVERIFY(wasInnerCancelled.future().isFinished());
+    QVERIFY(wasInnerCancelled.future().result());
+
+    //These should finish
+    await(wasCancelled.future(), 100);
+    QVERIFY(wasCancelled.future().isFinished());
+    QVERIFY(wasCancelled.future().result());
 }
 
 
