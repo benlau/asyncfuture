@@ -107,9 +107,9 @@ void BugTests::test_nested_context_in_thread()
 
         QThread* workerThread = QThread::currentThread();
 
-        observe(localTimeout(50)).context(context.get(), [localTimeout, context]() {
+        observe(localTimeout(50)).context(context.data(), [localTimeout, context]() {
             return localTimeout(50);
-        }).context(context.get(), [context, &called, workerThread, &loop]() {
+        }).context(context.data(), [context, &called, workerThread, &loop]() {
             called = true;
             QVERIFY(QThread::currentThread() == context->thread());
             QVERIFY(QThread::currentThread() == workerThread);
@@ -195,17 +195,17 @@ void BugTests::test_canceled_before_finished() {
 }
 
 void BugTests::test_finished_and_cancel_in_other_thread() {
-    auto thread = std::shared_ptr<FinishedAndCancelThread>(new FinishedAndCancelThread());
+    auto thread = QSharedPointer<FinishedAndCancelThread>(new FinishedAndCancelThread());
 
     QScopedPointer<QObject> context(new QObject());
 
-    connect(thread.get(), &FinishedAndCancelThread::startedSubTask, context.get(), [thread]() {
+    connect(thread.data(), &FinishedAndCancelThread::startedSubTask, context.data(), [thread]() {
         thread->doWork();
         QThread::msleep(100);
         thread->m_concurrentFuture.cancel();
     });
 
-    auto threadFuture = observe(thread.get(), &FinishedAndCancelThread::finished).future();
+    auto threadFuture = observe(thread.data(), &FinishedAndCancelThread::finished).future();
     thread->start();
 
     await(threadFuture);

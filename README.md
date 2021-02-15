@@ -386,10 +386,10 @@ auto worker = [&]() {
 
     QThread* workerThread = QThread::currentThread();
 
-    observe(localTimeout(50)).context(context.get(), [localTimeout, context]() {
+    observe(localTimeout(50)).context(context.data(), [localTimeout, context]() {
         qDebug() << "First time localTimeout() finished
         return localTimeout(50);
-    }).context(context.get(), [context, &called, workerThread, &loop]() {
+    }).context(context.data(), [context, &called, workerThread, &loop]() {
         qDebug() << "Second time localTimeout() finished
         loop.quit();
     });
