@@ -1,6 +1,6 @@
 ## AsyncFuture - Use QFuture like a Promise object
-[![Build Status](https://travis-ci.org/benlau/asyncfuture.svg?branch=master)](https://travis-ci.org/benlau/asyncfuture)
 [![Build status](https://ci.appveyor.com/api/projects/status/5cndw1uu5ay960c4?svg=true)](https://ci.appveyor.com/project/benlau/asyncfuture)
+[![Build Status](https://travis-ci.com/benlau/asyncfuture.svg?branch=master)](https://travis-ci.com/benlau/asyncfuture)
 
 
 QFuture is used together with QtConcurrent to represent the result of an asynchronous computation. It is a powerful component for multi-thread programming. But its usage is limited to the result of threads, it doesn't work with the asynchronous signal emitted by QObject. And it is a bit trouble to setup the listener function via QFutureWatcher.
