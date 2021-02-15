@@ -113,11 +113,11 @@ void BugTests::test_nested_context_in_thread()
             called = true;
             QVERIFY(QThread::currentThread() == context->thread());
             QVERIFY(QThread::currentThread() == workerThread);
-            QMetaObject::invokeMethod(&loop, &QEventLoop::quit); //loop.quit();
+            QMetaObject::invokeMethod(&loop, "quit"); //;&QEventLoop::quit); //loop.quit();
         }, [&]() {
             QVERIFY(QThread::currentThread() == context->thread());
             QVERIFY(QThread::currentThread() == workerThread);
-            QMetaObject::invokeMethod(&loop, &QEventLoop::quit); //loop.quit();
+            QMetaObject::invokeMethod(&loop, "quit"); //&QEventLoop::quit); //loop.quit();
         });
 
         loop.exec();
