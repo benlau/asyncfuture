@@ -1258,7 +1258,7 @@ static QFuture<DeferredType> execute(QFuture<T> future, const QObject* contextOb
     defer->setParentProgressValue(future.progressValue());
     defer->setParentProgressRange(future.progressMinimum(), future.progressMaximum());
 
-    auto cancelOnce = std::make_shared<CancelOnce<Canceled>>(onCanceled);
+    auto cancelOnce = QSharedPointer<CancelOnce<Canceled>>::create(onCanceled);
 
     watch(future,
           contextObject,
