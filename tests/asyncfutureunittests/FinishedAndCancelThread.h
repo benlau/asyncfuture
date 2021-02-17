@@ -16,6 +16,12 @@ public:
         setObjectName("FinishedAndCancelThread");
     }
 
+    ~FinishedAndCancelThread() {
+        if(contextObject) {
+            delete contextObject;
+        }
+    }
+
     void doWork() {
         m_runCount++;
 
