@@ -164,4 +164,26 @@
    fun:_ZN12QtConcurrent13IterateKernelIPKiiE14threadFunctionEv
    fun:_ZN12QtConcurrent16ThreadEngineBase3runEv
 }
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Cond
+   fun:_ZN12QtConcurrent18BlockSizeManagerV214timeBeforeUserEv
+   fun:_ZTv0_n56_N12QtConcurrent13IterateKernelIN5QListIiE14const_iteratorEiE14threadFunctionEv
+   fun:_ZN12QtConcurrent16ThreadEngineBase3runEv
+   fun:_ZN17QThreadPoolThread3runEv
+   fun:_ZN14QThreadPrivate5startEPv
+   fun:start_thread
+   fun:clone
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Cond
+   fun:_ZN12QtConcurrent18BlockSizeManagerV213timeAfterUserEv
+   fun:_ZTv0_n56_N12QtConcurrent13IterateKernelIN5QListIiE14const_iteratorEiE14threadFunctionEv
+   fun:_ZN12QtConcurrent16ThreadEngineBase3runEv
+   fun:_ZN17QThreadPoolThread3runEv
+   fun:_ZN14QThreadPrivate5startEPv
+   fun:start_thread
+   fun:clone
+}
 
