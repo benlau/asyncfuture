@@ -113,4 +113,7 @@ private slots:
 
     void test_alive();
 
+    void test_completed();
+    void test_Combinator_add_to_already_finished_finished();
+    void test_observe_future_future_completed();
 };

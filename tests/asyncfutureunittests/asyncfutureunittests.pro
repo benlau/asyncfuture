@@ -13,10 +13,12 @@ CONFIG   -= app_bundle
 TEMPLATE = app
 
 SOURCES +=     main.cpp \
+    FinishedAndCancelThread.cpp \
     example.cpp \
     bugtests.cpp \
     samplecode.cpp \
     cookbook.cpp \
+    testclass.cpp \
     trackingdata.cpp \
     spec.cpp
 
@@ -31,7 +33,9 @@ DISTFILES +=     qpm.json  \
     ../../qpm.json
 
 HEADERS += \
+    FinishedAndCancelThread.h \
     example.h \
+    testclass.h \
     testfunctions.h \
     bugtests.h \
     samplecode.h \
@@ -40,6 +44,6 @@ HEADERS += \
     spec.h \
     tools.h
 
-!win32 {
-    QMAKE_CXXFLAGS += -Werror
-}
+#!win32 {
+#    QMAKE_CXXFLAGS += -Werror
+#}

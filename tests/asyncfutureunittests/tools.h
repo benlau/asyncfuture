@@ -22,7 +22,7 @@ namespace Tools {
     }
 
     /// Returns a QFuture<void> which will be completed after msec specified by value.
-    /// This version works on non-main trehad
+    /// This version works on non-main thread
     inline
     QFuture<void> timeout(int value) {
        auto defer = AsyncFuture::deferred<void>();

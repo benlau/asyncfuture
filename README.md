@@ -329,7 +329,6 @@ Observable<int> observable1 = AsyncFuture::observe(future);
 // or
 auto observable2 = AsyncFuture::observe(future); 
 ```
-
 **QFuture&lt;T&gt; Observable&lt;T&gt;::future()**
 
 Obtain the QFuture object to represent the result.
@@ -361,13 +360,46 @@ observe(future).subscribe([](bool toggled) {
 
 ```
 
-**Observable&lt;R&gt; Observable&lt;T&gt;::context(QObject&#42; contextObject, Completed onCompleted)**
+**Observable&lt;R&gt; Observable&lt;T&gt;::context(QObject&#42; contextObject, Completed onCompleted, Cancel onCanceled)**
 
 *This API is for advanced users only*
 
-Add a callback function that listens to the finished signal from the observing QFuture object. The callback won't be triggered if the future is cancelled.
+Add a callback function that listens to the finished and canceled signals from the observing QFuture object.
 
-The callback is invoked in the thread of the context object, In case the context object is destroyed before the finished signal, the callback function won't be triggered and the returned Observable object will cancel its future.
+The callback is invoked in the thread of the context object. In case the context object is destroyed before the finished signal, the callback functions (onCompleted and onCanceled) won't be triggered and the returned Observable object will cancel its future.
+
+Note: An event loop, must be excuting on the the contextObject->thread() for nested observe().context() calls to work.
+Threads on the QThreadPool, generally don't have a QEventLoop executing, so manually creating and calling QEventLoop is
+necessary. For example:
+
+```c++
+auto worker = [&]() {
+    auto localTimeout = [](int sleepTime) {
+        return QtConcurrent::run([sleepTime]() {
+            QThread::currentThread()->msleep(sleepTime);
+        });
+    };
+
+    QEventLoop loop;
+
+    auto context = QSharedPointer<QObject>::create();
+
+    QThread* workerThread = QThread::currentThread();
+
+    observe(localTimeout(50)).context(context.data(), [localTimeout, context]() {
+        qDebug() << "First time localTimeout() finished
+        return localTimeout(50);
+    }).context(context.data(), [context, &called, workerThread, &loop]() {
+        qDebug() << "Second time localTimeout() finished
+        loop.quit();
+    });
+
+    loop.exec();
+};
+
+QtConcurrent::run(worker);
+
+```
 
 The return value is an `Observable<R>` object where R is the return type of the onCompleted callback.
 
@@ -404,11 +436,41 @@ AsyncFuture::observe(future).onProgress([=]() -> bool {
 AsyncFuture::observe(future).onProgress([=]() -> void {
     qDebug() << future.progressValue();
 });
-
 ```
 
 Added since v0.3.6.4
 
+**Chained Progress**
+
+`observe().subscribe().future()` future will report progress accordingly to the underlying future chain. When watching the final future in the chain, `progressRangeChanged` may be be updated multiple times as futures in the chain update their individual `progressRangeChanged`. When visualizing final future's progress in a progress bar, progressValue may appear to go in reverse, as progressRange increases. `progressValueChanged` will never go down as execution continues. 
+
+Example:
+
+```{c++}
+    QVector<int> ints(100);
+    std::iota(ints.begin(), ints.end(), ints.size()); // Make ints from 1 to 100, increament by 1
+    
+    // Worker function
+    std::function<int (int)> func = [](int x)->int {
+        QThread::msleep(100);
+        return x * x;
+    };
+    
+    //First execution of workers
+    //Will increase the progressRange to 100
+    QFuture<int> mappedFuture = QtConcurrent::mapped(ints, func);
+
+    auto nextFuture = AsyncFuture::observe(mappedFuture).subscribe([ints, func](){
+        //Execute another batch of workers
+        //Will increase the progressRange to 200
+        QFuture<int> mappedFuture2 = QtConcurrent::mapped(ints, func);
+        return mappedFuture2;
+    }).future();
+
+    AsyncFuture::observe(nextFuture).onProgress([nextFuture](){
+        //Report the progress for the sum of mappedFuture and nextFuture from 0 to 200.
+    });
+```
 
 Deferred&lt;T&gt;
 -----------
@@ -416,6 +478,8 @@ Deferred&lt;T&gt;
 The `deferred<T>()` function return a Deferred<T> object that allows you to manipulate a QFuture manually. The future() function return a running QFuture<T>. You have to call Deferred.complete() / Deferred.cancel() to trigger the status changes.
 
 The usage of complete/cancel in a Deferred object is pretty similar to the resolve/reject in a Promise object. You could complete a future by calling complete with a result value. If you give it another future, then it will observe the input future and change status once that is finished.
+
+`deffered<T>()` that are created and immediately completed it's recommend to use `completed<T>()` instead. 
 
 **Auto Cancellation**
 
@@ -474,6 +538,28 @@ It will forward the signal of `started` , `resumed` , `paused` . And synchonize 
 Remarks: It won't complete a future even the `progressValue` has been reached the maximum value.
 
 Added since v0.3.6
+
+completed();
+-----------
+
+The `completed<T>(const T&)` and `completed()` function return finished `QFuture<T>`
+and `QFuture<void>` . `completed<T>(const T&)` can be used instead of a `deferred<T>()`
+when the result is already available. For example:
+
+```c++
+    auto defer = deferred<int>();
+    defer.complete(5);
+    auto completedFuture = defer.future();
+```
+
+is equivalent to
+
+```c++
+    auto completedFuture = completed<int>(5);
+```
+
+`completed<T>(const T&)` is more convenient and light weight (memory and performance efficient) method of creating
+a completed `QFuture<T>`.
 
 Example
 
@@ -556,6 +642,32 @@ observe(f2).subscribe([=]() {
 });
 ```
 
+Cancelling the future at the end of the chain will cancel the whole chain. This will cancel all `QtConcurrent` execution. Worker threads that have already been started by `QtConcurrent` will continue running until finished, but no new ones will be started (this is how `QtConcurrent` works). 
+
+Example: 
+
+```c++
+    QVector<int> ints(100);
+    std::iota(ints.begin(), ints.end(), ints.size());
+    std::function<int (int)> func = [](int x)->int {
+        QThread::msleep(100);
+        return x * x;
+    };
+    
+    QFuture<int> mappedFuture = QtConcurrent::mapped(ints, func);
+
+    auto future = AsyncFuture::observe(mappedFuture).subscribe(
+                []{ 
+                   // it won't be executed
+                },
+                []{ 
+                    // it will be executed.
+                }
+    ).future();
+    
+    future.cancel(); //Will cancel mappedFuture and future 
+```
+
 Future Object Tracking
 ---------------
 
@@ -607,6 +719,48 @@ Examples
 There has few examples of different use-cases in this source file:
 
 [asyncfuture/example.cpp at master · benlau/asyncfuture](https://github.com/benlau/asyncfuture/blob/master/tests/asyncfutureunittests/example.cpp)
+
+Building Testcases
+==================
+
+qpm needs to install, see download instructions at http://www.qpm.io/
+
+After cloning the asyncfuture repository run the following commands:
+
+```shell
+
+cd asyncfuture/tests/asyncfutureunittests
+cat qpm.json
+
+```
+
+qpm.json should look something like this:
+
+```json
+
+{
+  "dependencies": [
+    "com.github.benlau.testable@1.0.2.22",
+    "com.github.benlau.qtshell@0.4.6",
+    "net.efever.xbacktrace@0.0.1"
+  ]
+}
+
+```
+
+Install all the dependencies like this:
+
+
+```shell
+
+qpm install com.github.benlau.testable@1.0.2.22
+qpm install com.github.benlau.qtshell@0.4.6
+qpm install net.efever.xbacktrace@0.0.1
+
+
+```
+
+Now open asyncfuture.pro in QtCreator and build and run testcases.
 
 
 
