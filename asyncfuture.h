@@ -461,10 +461,6 @@ template <typename T>
 class DeferredFuture : public QObject, public QFutureInterface<T>{
 public:
 
-    ~DeferredFuture() {
-        cancel();
-    }
-
     template <typename ANY>
     void track(QFuture<ANY> future) {
         QPointer<DeferredFuture<T>> thiz = this;
@@ -561,15 +557,13 @@ public:
     }
 
     void complete(QFuture<T> future) {
-        incWeakRefCount();
-        auto onFinished = [=]() {
-            this->completeByFinishedFuture<T>(future);
-            this->decWeakRefCount();
+        auto strongRef = this->weakRef.toStrongRef();
+        auto onFinished = [strongRef, future]() {
+            strongRef->template completeByFinishedFuture<T>(future);
         };
 
-        auto onCanceled = [=]() {
-            this->cancel();
-            this->decWeakRefCount();
+        auto onCanceled = [strongRef]() {
+            strongRef->cancel();
         };
 
         watch(future,
@@ -601,16 +595,13 @@ public:
 
     template <typename ANY>
     void complete(QFuture<QFuture<ANY>> future) {
-        incWeakRefCount();
-
-        auto onFinished = [=]() {
-            complete(future.result());
-            this->decWeakRefCount();
+        auto strongRef = this->weakRef.toStrongRef();
+        auto onFinished = [strongRef, future]() {
+            strongRef->complete(future.result());
         };
 
-        auto onCanceled = [=]() {
-            this->cancel();
-            this->decWeakRefCount();
+        auto onCanceled = [strongRef]() {
+            strongRef->cancel();
         };
 
         watch(future,
@@ -633,88 +624,44 @@ public:
 
     template <typename Member>
 	void cancel(const QObject* sender, Member member) {
-        incWeakRefCount();
+        // Used internally for linking to the context object.
+        // weakRef is used because we don't want the long lived context object to keep
+        // deferred alive.
+        auto weakRef = this->weakRef;
         QObject::connect(sender, member,
-                         this, [=]() {
-            this->cancel();
-            decWeakRefCount();
+                         this, [weakRef]() {
+            auto self = weakRef.toStrongRef();
+            if (!self.isNull()) {
+                self->cancel();
+            }
         });
     }
 
     template <typename ANY>
     void cancel(QFuture<ANY> future) {
-        incWeakRefCount();
-        auto onFinished = [=]() {
-            cancel();
-            decWeakRefCount();
-        };
-
-        auto onCanceled = [=]() {
-            decWeakRefCount();
+        auto strongRef = this->weakRef.toStrongRef();
+        auto onFinished = [strongRef]() {
+            strongRef->cancel();
         };
 
         watch(future,
               this,
               nullptr,
               onFinished,
-              onCanceled,
+              []() {},
               [](int){},
               [](int,int){}
         );
     }
 
-    void incWeakRefCount() {
-        mutex.lock();
-        refCount++;
-        mutex.unlock();
-    }
-
-    void decWeakRefCount() {
-        int count;
-
-        mutex.lock();
-        refCount--;
-        count = refCount;
-        mutex.unlock();
-
-        if (count <= 0) {
-            if (!isFinished()) {
-                cancel();
-            }
-        }
-
-        if (strongRefCount == 0 && isFinished()) {
-            //This prevents deletion this on a seperate thread
-            if(thread() != QThread::currentThread()) {
-                QMetaObject::invokeMethod(this, "deleteLater");
-            } else {
-                delete this;
-            }
-        }
-    }
-
-    void incStrongRef() {
-        mutex.lock();
-        strongRefCount++;
-        mutex.unlock();
-    }
-
-    void decStrongRef() {
-        mutex.lock();
-        strongRefCount--;
-        mutex.unlock();
-    }
-
     /// Create a DeferredFugture instance and manage by a shared pointer
     static QSharedPointer<DeferredFuture<T> > create() {
-
         auto deleter = [](DeferredFuture<T> *object) {
-            object->decStrongRef();
-            object->decWeakRefCount();
+            object->cancel();
+            object->deleteLater();
         };
-
         QSharedPointer<DeferredFuture<T> > ptr(new DeferredFuture<T>(), deleter);
-        ptr->incStrongRef();
+        ptr->weakRef = ptr.toWeakRef();
         return ptr;
     }
 
@@ -756,9 +703,7 @@ public:
 
 protected:
     DeferredFuture(QObject* parent = nullptr): QObject(parent),
-                                         QFutureInterface<T>(QFutureInterface<T>::Running),
-                                         refCount(1),
-                                         strongRefCount(0) {
+                    QFutureInterface<T>(QFutureInterface<T>::Running) {
             moveToThread(QCoreApplication::instance()->thread());
     }
 
@@ -766,11 +711,7 @@ protected:
 
 private:
 
-    // A reference count system. If it is dropped to zero, it will cancel this object
-    int refCount;
-
-    // Unless it is zero, this object will not be destroyed.
-    int strongRefCount;
+    QWeakPointer<DeferredFuture<T>> weakRef;
 
     class Progress {
     public:
@@ -877,8 +818,6 @@ public:
             return;
         }
 
-        incWeakRefCount();
-
         mutex.lock();
         int index = count++;
 
@@ -912,13 +851,13 @@ public:
         QFutureInterface<void>::setProgressRange(0, progressMaximum() + info->max);
         mutex.unlock();
 
+
+        auto strongRef = this->weakRef.toStrongRef();
         Private::watch(future, this, 0,
-                       [=]() {
-            completeFutureAt(index);
-            decWeakRefCount();
-        },[=]() {
-            cancelFutureAt(index);
-            decWeakRefCount();
+                       [strongRef, index]() {
+            strongRef->completeFutureAt(index);
+        },[strongRef, index]() {
+            strongRef->cancelFutureAt(index);
         },
         progressFunc,
         progressRangeFunc
@@ -926,16 +865,12 @@ public:
     }
 
     static QSharedPointer<CombinedFuture> create(bool settleAllMode) {
-
         auto deleter = [](CombinedFuture *object) {
-            // Regardless of the no. of instance of QSharedPointer<CombinedFuture>,
-            // it only increase the reference by one.
-            object->decStrongRef();
-            object->decWeakRefCount();
+            object->cancel();
+            object->deleteLater();
         };
-
-        QSharedPointer<CombinedFuture> ptr(new CombinedFuture(settleAllMode), deleter);
-        ptr->incStrongRef();
+        QSharedPointer<CombinedFuture> ptr(new CombinedFuture(settleAllMode));
+        ptr->weakRef = ptr.toWeakRef();
         return ptr;
     }
 
@@ -952,6 +887,7 @@ private:
         QFuture<void> childFuture;
     };
 
+    QWeakPointer<CombinedFuture> weakRef;
     int settledCount;
     int count;
     bool anyCanceled;
